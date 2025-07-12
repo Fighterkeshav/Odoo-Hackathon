@@ -38,10 +38,10 @@ const LandingPage = () => {
   ];
 
   const stats = [
-    { number: '1000+', label: 'Items Shared' },
-    { number: '500+', label: 'Happy Users' },
-    { number: '50+', label: 'Cities' },
-    { number: '100%', label: 'Sustainable' }
+    { number: '—', label: 'Items Shared' },
+    { number: '—', label: 'Happy Users' },
+    { number: '—', label: 'Cities' },
+    { number: '—', label: 'Sustainable' }
   ];
 
   return (
