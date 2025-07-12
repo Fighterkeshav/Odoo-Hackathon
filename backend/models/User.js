@@ -65,6 +65,57 @@ module.exports = (sequelize, DataTypes) => {
     style_preferences: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    latitude: {
+      type: DataTypes.DECIMAL(10, 8),
+      allowNull: false,
+      validate: {
+        min: -90,
+        max: 90
+      }
+    },
+    longitude: {
+      type: DataTypes.DECIMAL(11, 8),
+      allowNull: false,
+      validate: {
+        min: -180,
+        max: 180
+      }
+    },
+    address: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [5, 200]
+      }
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    state: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    country: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 50]
+      }
+    },
+    postal_code: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [3, 10]
+      }
     }
   }, {
     tableName: 'users',

@@ -114,7 +114,14 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
         bio: user.bio,
         is_admin: user.is_admin,
         points_balance: user.points_balance,
-        profile_image_url: user.profile_image_url
+        profile_image_url: user.profile_image_url,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        postal_code: user.postal_code
       },
       items: user.items || [],
       sentSwaps: user.sentSwaps || [],
@@ -131,7 +138,14 @@ router.post('/register', [
   body('name').isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password_hash').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  body('bio').isLength({ min: 2, max: 100 }).withMessage('Bio must be between 2 and 100 characters')
+  body('bio').isLength({ min: 2, max: 100 }).withMessage('Bio must be between 2 and 100 characters'),
+  body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude is required'),
+  body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude is required'),
+  body('address').isLength({ min: 5, max: 200 }).withMessage('Address must be between 5 and 200 characters'),
+  body('city').isLength({ min: 2, max: 50 }).withMessage('City must be between 2 and 50 characters'),
+  body('state').isLength({ min: 2, max: 50 }).withMessage('State must be between 2 and 50 characters'),
+  body('country').isLength({ min: 2, max: 50 }).withMessage('Country must be between 2 and 50 characters'),
+  body('postal_code').isLength({ min: 3, max: 10 }).withMessage('Postal code must be between 3 and 10 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -139,7 +153,19 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password_hash, bio } = req.body;
+    const { 
+      name, 
+      email, 
+      password_hash, 
+      bio, 
+      latitude, 
+      longitude, 
+      address, 
+      city, 
+      state, 
+      country, 
+      postal_code 
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -155,7 +181,14 @@ router.post('/register', [
       name,
       email,
       password_hash: hashedPassword,
-      bio
+      bio,
+      latitude,
+      longitude,
+      address,
+      city,
+      state,
+      country,
+      postal_code
     });
 
     // Generate JWT token
@@ -174,7 +207,14 @@ router.post('/register', [
         email: user.email,
         bio: user.bio,
         is_admin: user.is_admin,
-        points_balance: user.points_balance
+        points_balance: user.points_balance,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        postal_code: user.postal_code
       }
     });
   } catch (error) {
@@ -225,7 +265,14 @@ router.post('/login', [
         bio: user.bio,
         is_admin: user.is_admin,
         points_balance: user.points_balance,
-        profile_image_url: user.profile_image_url
+        profile_image_url: user.profile_image_url,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        postal_code: user.postal_code
       }
     });
   } catch (error) {
