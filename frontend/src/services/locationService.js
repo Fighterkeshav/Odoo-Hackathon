@@ -1,5 +1,7 @@
-// Location Service for handling Nominatim and Overpass Turbo APIs
+// Location Service for handling Google Maps API, Nominatim and Overpass Turbo APIs
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCWD574Wyf_RcaejP7S99OB2jV__wcNxTQ';
+const GOOGLE_MAPS_BASE_URL = 'https://maps.googleapis.com/maps/api';
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
 const OVERPASS_BASE_URL = 'https://overpass-api.de/api/interpreter';
 
@@ -8,7 +10,91 @@ const searchCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 class LocationService {
-  // Nominatim search for general locations
+  // Google Maps Places API search
+  static async searchGooglePlaces(query, limit = 5) {
+    const cacheKey = `google_${query}_${limit}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(
+        `${GOOGLE_MAPS_BASE_URL}/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}&maxResults=${limit}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Google Places API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.status !== 'OK') {
+        throw new Error(`Google Places API error: ${data.status}`);
+      }
+
+      const results = data.results.map(result => ({
+        id: result.place_id,
+        name: result.name,
+        latitude: result.geometry.location.lat,
+        longitude: result.geometry.location.lng,
+        type: result.types[0] || 'establishment',
+        address: result.formatted_address,
+        icon: this.getIconForGoogleType(result.types[0]),
+        source: 'google',
+        rating: result.rating,
+        user_ratings_total: result.user_ratings_total,
+        opening_hours: result.opening_hours?.open_now
+      }));
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error('Google Places search error:', error);
+      throw error;
+    }
+  }
+
+  // Google Maps Geocoding API
+  static async searchGoogleGeocoding(query, limit = 5) {
+    const cacheKey = `google_geocode_${query}_${limit}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(
+        `${GOOGLE_MAPS_BASE_URL}/geocode/json?address=${encodeURIComponent(query)}&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Google Geocoding API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.status !== 'OK') {
+        throw new Error(`Google Geocoding API error: ${data.status}`);
+      }
+
+      const results = data.results.slice(0, limit).map(result => ({
+        id: result.place_id,
+        name: result.formatted_address,
+        latitude: result.geometry.location.lat,
+        longitude: result.geometry.location.lng,
+        type: 'location',
+        address: result.formatted_address,
+        icon: 'map-pin',
+        source: 'google',
+        address_components: result.address_components
+      }));
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error('Google Geocoding search error:', error);
+      throw error;
+    }
+  }
+
+  // Nominatim search (general location search) - Fallback
   static async searchNominatim(query, limit = 5) {
     const cacheKey = `nominatim_${query}_${limit}`;
     const cached = this.getFromCache(cacheKey);
@@ -44,7 +130,7 @@ class LocationService {
     }
   }
 
-  // Overpass Turbo search for POIs and detailed locations
+  // Overpass Turbo search (POI and detailed location search) - Fallback
   static async searchOverpass(query, limit = 10) {
     const cacheKey = `overpass_${query}_${limit}`;
     const cached = this.getFromCache(cacheKey);
@@ -116,35 +202,72 @@ class LocationService {
     }
   }
 
-  // Combined search using both APIs
+  // Combined search using Google Maps first, then fallback to OpenStreetMap
   static async searchCombined(query, limit = 5) {
     try {
-      const [nominatimResults, overpassResults] = await Promise.allSettled([
-        this.searchNominatim(query, limit),
-        this.searchOverpass(query, limit)
-      ]);
-
-      const results = [];
+      // Try Google Places API first
+      const googleResults = await this.searchGooglePlaces(query, limit);
+      return googleResults;
+    } catch (googleError) {
+      console.log('Google Places failed, trying Google Geocoding...');
       
-      if (nominatimResults.status === 'fulfilled') {
-        results.push(...nominatimResults.value);
-      }
-      
-      if (overpassResults.status === 'fulfilled') {
-        results.push(...overpassResults.value);
-      }
+      try {
+        // Try Google Geocoding API
+        const geocodingResults = await this.searchGoogleGeocoding(query, limit);
+        return geocodingResults;
+      } catch (geocodingError) {
+        console.log('Google APIs failed, falling back to OpenStreetMap...');
+        
+        // Fallback to OpenStreetMap APIs
+        const [nominatimResults, overpassResults] = await Promise.allSettled([
+          this.searchNominatim(query, limit),
+          this.searchOverpass(query, limit)
+        ]);
 
-      // Remove duplicates and sort by relevance
-      const uniqueResults = this.removeDuplicates(results);
-      return uniqueResults.slice(0, limit * 2);
-    } catch (error) {
-      console.error('Combined search error:', error);
-      throw error;
+        const results = [];
+        
+        if (nominatimResults.status === 'fulfilled') {
+          results.push(...nominatimResults.value);
+        }
+        
+        if (overpassResults.status === 'fulfilled') {
+          results.push(...overpassResults.value);
+        }
+
+        // Remove duplicates and sort by relevance
+        const uniqueResults = this.removeDuplicates(results);
+        return uniqueResults.slice(0, limit * 2);
+      }
     }
   }
 
-  // Reverse geocoding
+  // Reverse geocoding with Google Maps first, then fallback
   static async reverseGeocode(latitude, longitude) {
+    try {
+      // Try Google Reverse Geocoding first
+      const response = await fetch(
+        `${GOOGLE_MAPS_BASE_URL}/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results.length > 0) {
+          const result = data.results[0];
+          return {
+            address: result.formatted_address,
+            details: result.address_components,
+            latitude: parseFloat(latitude),
+            longitude: parseFloat(longitude),
+            source: 'google'
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Google reverse geocoding failed, using Nominatim...');
+    }
+
+    // Fallback to Nominatim
     try {
       const response = await fetch(
         `${NOMINATIM_BASE_URL}/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=en`
@@ -159,7 +282,8 @@ class LocationService {
         address: data.display_name,
         details: data.address,
         latitude: parseFloat(data.lat),
-        longitude: parseFloat(data.lon)
+        longitude: parseFloat(data.lon),
+        source: 'nominatim'
       };
     } catch (error) {
       console.error('Reverse geocoding error:', error);
@@ -167,8 +291,36 @@ class LocationService {
     }
   }
 
-  // Get nearby POIs
-  static async getNearbyPOIs(latitude, longitude, radius = 1000, types = ['amenity', 'shop']) {
+  // Get nearby POIs using Google Places API first, then fallback
+  static async getNearbyPOIs(latitude, longitude, radius = 1000, types = ['restaurant', 'store', 'establishment']) {
+    try {
+      // Try Google Places Nearby Search
+      const response = await fetch(
+        `${GOOGLE_MAPS_BASE_URL}/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&key=${GOOGLE_MAPS_API_KEY}&types=${types.join('|')}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'OK') {
+          return data.results.map(result => ({
+            id: result.place_id,
+            name: result.name,
+            latitude: result.geometry.location.lat,
+            longitude: result.geometry.location.lng,
+            type: result.types[0] || 'establishment',
+            distance: this.calculateDistance(latitude, longitude, result.geometry.location.lat, result.geometry.location.lng),
+            rating: result.rating,
+            user_ratings_total: result.user_ratings_total,
+            source: 'google'
+          })).sort((a, b) => a.distance - b.distance);
+        }
+      }
+    } catch (error) {
+      console.log('Google nearby search failed, using Overpass...');
+    }
+
+    // Fallback to Overpass
     try {
       const overpassQuery = `
         [out:json][timeout:25];
@@ -205,7 +357,8 @@ class LocationService {
           latitude: center.lat,
           longitude: center.lon,
           type: tags.amenity || tags.shop || 'poi',
-          distance: this.calculateDistance(latitude, longitude, center.lat, center.lon)
+          distance: this.calculateDistance(latitude, longitude, center.lat, center.lon),
+          source: 'overpass'
         };
       }).sort((a, b) => a.distance - b.distance);
     } catch (error) {
@@ -220,6 +373,35 @@ class LocationService {
     if (tags['addr:housenumber']) parts.push(tags['addr:housenumber']);
     if (tags['addr:street']) parts.push(tags['addr:street']);
     return parts.join(' ').trim();
+  }
+
+  static getIconForGoogleType(type) {
+    switch (type) {
+      case 'restaurant':
+      case 'cafe':
+      case 'food':
+        return 'coffee';
+      case 'store':
+      case 'supermarket':
+      case 'shopping_mall':
+        return 'store';
+      case 'office':
+      case 'establishment':
+        return 'building';
+      case 'school':
+      case 'university':
+        return 'graduation-cap';
+      case 'hospital':
+      case 'health':
+        return 'heart';
+      case 'bank':
+      case 'finance':
+        return 'credit-card';
+      case 'parking':
+        return 'car';
+      default:
+        return 'map-pin';
+    }
   }
 
   static getIconForType(type) {

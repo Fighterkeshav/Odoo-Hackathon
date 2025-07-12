@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Building, Home, Store, Coffee, GraduationCap, Heart, CreditCard, Car } from 'lucide-react';
+import { MapPin, Search, Building, Home, Store, Coffee, GraduationCap, Heart, CreditCard, Car, Star } from 'lucide-react';
 import LocationService from '../services/locationService';
 
 const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
@@ -15,7 +15,8 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [searchType, setSearchType] = useState('combined'); // 'nominatim', 'overpass', or 'combined'
+  const [searchType, setSearchType] = useState('google'); // 'google', 'nominatim', 'overpass', or 'combined'
+  const [useGoogleMaps, setUseGoogleMaps] = useState(true);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -56,6 +57,14 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
       let results = [];
       
       switch (searchType) {
+        case 'google':
+          try {
+            results = await LocationService.searchGooglePlaces(searchQuery, 5);
+          } catch (error) {
+            console.log('Google Places failed, trying Google Geocoding...');
+            results = await LocationService.searchGoogleGeocoding(searchQuery, 5);
+          }
+          break;
         case 'nominatim':
           results = await LocationService.searchNominatim(searchQuery, 5);
           break;
@@ -71,14 +80,12 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
       setSearchResults(results);
     } catch (error) {
       console.error('Error searching location:', error);
-      // Fallback to Nominatim if Overpass fails
-      if (searchType === 'overpass' || searchType === 'combined') {
-        try {
-          const fallbackResults = await LocationService.searchNominatim(searchQuery, 5);
-          setSearchResults(fallbackResults);
-        } catch (fallbackError) {
-          console.error('Fallback search also failed:', fallbackError);
-        }
+      // Fallback to Nominatim if all else fails
+      try {
+        const fallbackResults = await LocationService.searchNominatim(searchQuery, 5);
+        setSearchResults(fallbackResults);
+      } catch (fallbackError) {
+        console.error('All search methods failed:', fallbackError);
       }
     } finally {
       setIsLoading(false);
@@ -108,6 +115,8 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
 
   const getSearchPlaceholder = () => {
     switch (searchType) {
+      case 'google':
+        return "Search with Google Maps (places, businesses, addresses)...";
       case 'nominatim':
         return "Search for a location, city, or address...";
       case 'overpass':
@@ -115,6 +124,16 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
       case 'combined':
       default:
         return "Search for anything - locations, places, businesses...";
+    }
+  };
+
+  const getMapUrl = () => {
+    if (!location.latitude || !location.longitude) return null;
+    
+    if (useGoogleMaps) {
+      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyCWD574Wyf_RcaejP7S99OB2jV__wcNxTQ&q=${location.latitude},${location.longitude}&zoom=15`;
+    } else {
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude-0.01},${location.latitude-0.01},${location.longitude+0.01},${location.latitude+0.01}&layer=mapnik&marker=${location.latitude},${location.longitude}`;
     }
   };
 
@@ -127,6 +146,16 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
       
       {/* Search Type Toggle */}
       <div className="flex space-x-2 mb-4">
+        <button
+          onClick={() => setSearchType('google')}
+          className={`px-3 py-1 rounded-md text-sm font-medium ${
+            searchType === 'google'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Google Maps
+        </button>
         <button
           onClick={() => setSearchType('combined')}
           className={`px-3 py-1 rounded-md text-sm font-medium ${
@@ -145,17 +174,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          General
-        </button>
-        <button
-          onClick={() => setSearchType('overpass')}
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
-            searchType === 'overpass'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          POI Search
+          OpenStreetMap
         </button>
       </div>
       
@@ -194,6 +213,15 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
                 <div className="text-sm text-gray-500">
                   {result.type !== 'location' && <span className="capitalize">{result.type}</span>}
                   {result.address && ` • ${result.address}`}
+                  {result.rating && (
+                    <span className="flex items-center text-yellow-500 ml-2">
+                      <Star className="h-3 w-3 fill-current" />
+                      <span className="ml-1 text-xs">{result.rating}</span>
+                      {result.user_ratings_total && (
+                        <span className="text-gray-400 ml-1 text-xs">({result.user_ratings_total})</span>
+                      )}
+                    </span>
+                  )}
                   {result.source && <span className="text-xs text-gray-400 ml-2">({result.source})</span>}
                 </div>
               </div>
@@ -315,9 +343,33 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
       {/* Map Preview */}
       {location.latitude && location.longitude && (
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Location Preview
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Location Preview
+            </label>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setUseGoogleMaps(true)}
+                className={`px-2 py-1 text-xs rounded ${
+                  useGoogleMaps
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Google Maps
+              </button>
+              <button
+                onClick={() => setUseGoogleMaps(false)}
+                className={`px-2 py-1 text-xs rounded ${
+                  !useGoogleMaps
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                OpenStreetMap
+              </button>
+            </div>
+          </div>
           <div className="w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
             <iframe
               width="100%"
@@ -326,7 +378,8 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
               scrolling="no"
               marginHeight="0"
               marginWidth="0"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude-0.01},${location.latitude-0.01},${location.longitude+0.01},${location.latitude+0.01}&layer=mapnik&marker=${location.latitude},${location.longitude}`}
+              src={getMapUrl()}
+              title="Location Preview"
             />
           </div>
         </div>
