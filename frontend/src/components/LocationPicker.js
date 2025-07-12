@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search } from 'lucide-react';
+import { MapPin, Search, Building, Home, Store, Coffee, GraduationCap, Heart, CreditCard, Car } from 'lucide-react';
+import LocationService from '../services/locationService';
 
 const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
   const [location, setLocation] = useState({
@@ -13,6 +14,8 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchType, setSearchType] = useState('combined'); // 'nominatim', 'overpass', or 'combined'
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -22,41 +25,97 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
     }));
   };
 
+  const getIconComponent = (iconName) => {
+    switch (iconName) {
+      case 'coffee':
+        return <Coffee className="h-4 w-4" />;
+      case 'store':
+        return <Store className="h-4 w-4" />;
+      case 'building':
+        return <Building className="h-4 w-4" />;
+      case 'graduation-cap':
+        return <GraduationCap className="h-4 w-4" />;
+      case 'heart':
+        return <Heart className="h-4 w-4" />;
+      case 'credit-card':
+        return <CreditCard className="h-4 w-4" />;
+      case 'car':
+        return <Car className="h-4 w-4" />;
+      default:
+        return <MapPin className="h-4 w-4" />;
+    }
+  };
+
   const searchLocation = async () => {
     if (!searchQuery.trim()) return;
     
     setIsLoading(true);
+    setSearchResults([]);
+    
     try {
-      // Use OpenStreetMap Nominatim API for geocoding
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
-      );
-      const data = await response.json();
+      let results = [];
       
-      if (data.length > 0) {
-        const result = data[0];
-        const newLocation = {
-          latitude: parseFloat(result.lat),
-          longitude: parseFloat(result.lon),
-          address: result.display_name.split(',')[0] || '',
-          city: result.address?.city || result.address?.town || result.address?.village || '',
-          state: result.address?.state || '',
-          country: result.address?.country || '',
-          postal_code: result.address?.postcode || ''
-        };
-        
-        setLocation(newLocation);
-        onLocationSelect(newLocation);
+      switch (searchType) {
+        case 'nominatim':
+          results = await LocationService.searchNominatim(searchQuery, 5);
+          break;
+        case 'overpass':
+          results = await LocationService.searchOverpass(searchQuery, 5);
+          break;
+        case 'combined':
+        default:
+          results = await LocationService.searchCombined(searchQuery, 3);
+          break;
       }
+      
+      setSearchResults(results);
     } catch (error) {
       console.error('Error searching location:', error);
+      // Fallback to Nominatim if Overpass fails
+      if (searchType === 'overpass' || searchType === 'combined') {
+        try {
+          const fallbackResults = await LocationService.searchNominatim(searchQuery, 5);
+          setSearchResults(fallbackResults);
+        } catch (fallbackError) {
+          console.error('Fallback search also failed:', fallbackError);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const selectLocation = (result) => {
+    const newLocation = {
+      latitude: result.latitude,
+      longitude: result.longitude,
+      address: result.address || result.name.split(',')[0] || '',
+      city: result.city || result.address?.city || result.address?.town || result.address?.village || '',
+      state: result.state || result.address?.state || '',
+      country: result.country || result.address?.country || '',
+      postal_code: result.postal_code || result.address?.postcode || ''
+    };
+    
+    setLocation(newLocation);
+    setSearchResults([]);
+    setSearchQuery(result.name);
+    onLocationSelect(newLocation);
+  };
+
   const handleLocationSelect = () => {
     onLocationSelect(location);
+  };
+
+  const getSearchPlaceholder = () => {
+    switch (searchType) {
+      case 'nominatim':
+        return "Search for a location, city, or address...";
+      case 'overpass':
+        return "Search for places, shops, restaurants, offices...";
+      case 'combined':
+      default:
+        return "Search for anything - locations, places, businesses...";
+    }
   };
 
   return (
@@ -66,11 +125,45 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
         <h3 className="text-lg font-semibold text-gray-900">Location Information</h3>
       </div>
       
+      {/* Search Type Toggle */}
+      <div className="flex space-x-2 mb-4">
+        <button
+          onClick={() => setSearchType('combined')}
+          className={`px-3 py-1 rounded-md text-sm font-medium ${
+            searchType === 'combined'
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Combined
+        </button>
+        <button
+          onClick={() => setSearchType('nominatim')}
+          className={`px-3 py-1 rounded-md text-sm font-medium ${
+            searchType === 'nominatim'
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          General
+        </button>
+        <button
+          onClick={() => setSearchType('overpass')}
+          className={`px-3 py-1 rounded-md text-sm font-medium ${
+            searchType === 'overpass'
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          POI Search
+        </button>
+      </div>
+      
       {/* Search Location */}
       <div className="flex space-x-2">
         <input
           type="text"
-          placeholder="Search for a location..."
+          placeholder={getSearchPlaceholder()}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -85,6 +178,29 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
           {isLoading ? 'Searching...' : 'Search'}
         </button>
       </div>
+
+      {/* Search Results */}
+      {searchResults.length > 0 && (
+        <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+          {searchResults.map((result) => (
+            <button
+              key={`${result.source}_${result.id}`}
+              onClick={() => selectLocation(result)}
+              className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
+            >
+              {getIconComponent(result.icon)}
+              <div className="flex-1">
+                <div className="font-medium text-gray-900">{result.name}</div>
+                <div className="text-sm text-gray-500">
+                  {result.type !== 'location' && <span className="capitalize">{result.type}</span>}
+                  {result.address && ` • ${result.address}`}
+                  {result.source && <span className="text-xs text-gray-400 ml-2">({result.source})</span>}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Location Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
