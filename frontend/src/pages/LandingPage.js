@@ -106,15 +106,16 @@ const LandingPage = () => {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-background py-10 flex items-center justify-center">
+        <div className="w-full max-w-6xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary-600 mb-2">
+              <div key={index} className="flex flex-col items-center justify-center">
+                <div className="border-b-4 border-accent w-8 mb-4"></div>
+                <div className="text-5xl font-extrabold text-primary mb-2">
                   {stat.number}
                 </div>
-                <div className="text-gray-600">{stat.label}</div>
+                <div className="text-text text-lg font-semibold text-center">{stat.label}</div>
               </div>
             ))}
           </div>
