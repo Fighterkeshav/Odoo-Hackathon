@@ -17,7 +17,7 @@ import WishlistButton from '../components/WishlistButton';
 
 const ItemDetailPage = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,19 +56,25 @@ const ItemDetailPage = () => {
       return;
     }
 
-    if (type === 'redeem' && user.points < 1) {
+    if (type === 'redeem' && (user.points_balance || 0) < 1) {
       toast.error('You need at least 1 point to redeem items');
       return;
     }
 
     try {
       setSwapLoading(true);
-      await axios.post('/api/swap', {
+      const response = await axios.post('/api/swaps', {
         item_id: item.id,
         type: type
       });
       
       toast.success(`${type === 'redeem' ? 'Redemption' : 'Swap'} request sent successfully!`);
+      
+      // Update user data if points were deducted
+      if (type === 'redeem' && response.data.user) {
+        updateUser(response.data.user);
+      }
+      
       fetchItem(); // Refresh item data
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to send request';
@@ -251,7 +257,7 @@ const ItemDetailPage = () => {
                 <div className="flex items-center">
                   <Coins className="h-5 w-5 text-primary-600 mr-2" />
                   <span className="text-sm text-gray-600">
-                    You have <span className="font-semibold text-primary-600">{user.points} points</span>
+                    You have <span className="font-semibold text-primary-600">{user.points_balance || 0} points</span>
                   </span>
                 </div>
                 <WishlistButton itemId={item.id} />
@@ -269,7 +275,7 @@ const ItemDetailPage = () => {
                 
                 <button
                   onClick={() => handleSwap('redeem')}
-                  disabled={swapLoading || user.points < 1}
+                  disabled={swapLoading || (user.points_balance || 0) < 1}
                   className="btn-secondary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Coins className="h-4 w-4 mr-2" />

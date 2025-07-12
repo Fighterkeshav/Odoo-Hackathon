@@ -69,7 +69,14 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
       include: [
         {
           model: Item,
-          as: 'items'
+          as: 'items',
+          include: [
+            { model: require('../models').Category, as: 'category' },
+            { model: require('../models').Size, as: 'size' },
+            { model: require('../models').Condition, as: 'condition' },
+            { model: require('../models').ItemImage, as: 'images' },
+            { model: require('../models').Tag, as: 'tags' }
+          ]
         },
         {
           model: Swap,
@@ -77,7 +84,11 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
           include: [
             {
               model: Item,
-              as: 'requestedItem'
+              as: 'item',
+              include: [
+                { model: User, as: 'owner', attributes: ['id', 'name'] },
+                { model: require('../models').ItemImage, as: 'images' }
+              ]
             },
             {
               model: User,
@@ -91,7 +102,11 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
           include: [
             {
               model: Item,
-              as: 'requestedItem'
+              as: 'item',
+              include: [
+                { model: User, as: 'owner', attributes: ['id', 'name'] },
+                { model: require('../models').ItemImage, as: 'images' }
+              ]
             },
             {
               model: User,

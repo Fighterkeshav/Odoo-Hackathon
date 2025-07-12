@@ -24,6 +24,14 @@ const DashboardPage = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Set up automatic refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 30000);
+    
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -42,8 +50,15 @@ const DashboardPage = () => {
 
   const handleSwapResponse = async (swapId, status) => {
     try {
-      await axios.put(`/api/swaps/${swapId}/respond`, { status });
+      const response = await axios.put(`/api/swaps/${swapId}/respond`, { status });
       toast.success(`Swap request ${status} successfully`);
+      
+      // Update user data if provided in response
+      if (response.data.updatedUser) {
+        updateUser(response.data.updatedUser);
+      }
+      
+      // Refresh dashboard data to get updated information
       fetchDashboardData();
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to respond to swap';
@@ -99,22 +114,33 @@ const DashboardPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* User Profile Section */}
-      <div className="flex items-center space-x-6 mb-8">
-        {user?.profile_image_url ? (
-          <img src={user.profile_image_url} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
-        ) : (
-          <div className="h-20 w-20 bg-primary-100 rounded-full flex items-center justify-center">
-            <User className="h-10 w-10 text-primary-600" />
-          </div>
-        )}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
-          <p className="text-gray-600 mb-2">{user?.bio}</p>
-          <div className="flex items-center text-sm text-gray-500">
-            <Coins className="h-4 w-4 mr-1" />
-            {user?.points_balance || 0} points
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-6">
+          {user?.profile_image_url ? (
+            <img src={user.profile_image_url} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
+          ) : (
+            <div className="h-20 w-20 bg-primary-100 rounded-full flex items-center justify-center">
+              <User className="h-10 w-10 text-primary-600" />
+            </div>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
+            <p className="text-gray-600 mb-2">{user?.bio}</p>
+            <div className="flex items-center text-sm text-gray-500">
+              <Coins className="h-4 w-4 mr-1" />
+              {user?.points_balance || 0} points
+            </div>
           </div>
         </div>
+        
+        <button
+          onClick={fetchDashboardData}
+          disabled={loading}
+          className="btn-secondary flex items-center"
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -126,7 +152,7 @@ const DashboardPage = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Points</p>
-              <p className="text-2xl font-bold text-gray-900">{user.points}</p>
+              <p className="text-2xl font-bold text-gray-900">{user?.points_balance || 0}</p>
             </div>
           </div>
         </div>
@@ -275,9 +301,9 @@ const DashboardPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden">
-                          {swap.item.image_url ? (
+                          {swap.item && swap.item.images && swap.item.images.length > 0 ? (
                             <img
-                              src={`http://localhost:5000${swap.item.image_url}`}
+                              src={`http://localhost:5000${swap.item.images[0].image_url}`}
                               alt={swap.item.title}
                               className="h-full w-full object-cover"
                             />
@@ -289,9 +315,9 @@ const DashboardPage = () => {
                         </div>
                         
                         <div>
-                          <h3 className="font-semibold text-gray-900">{swap.item.title}</h3>
+                          <h3 className="font-semibold text-gray-900">{swap.item ? swap.item.title : 'Item unavailable'}</h3>
                           <p className="text-sm text-gray-600">
-                            Requested by {swap.fromUser.name}
+                            Requested by {swap.fromUser?.name || 'Unknown'}
                           </p>
                           <div className="flex items-center space-x-4 mt-1">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(swap.status)}`}>
@@ -344,9 +370,9 @@ const DashboardPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden">
-                          {swap.item.image_url ? (
+                          {swap.item && swap.item.images && swap.item.images.length > 0 ? (
                             <img
-                              src={`http://localhost:5000${swap.item.image_url}`}
+                              src={`http://localhost:5000${swap.item.images[0].image_url}`}
                               alt={swap.item.title}
                               className="h-full w-full object-cover"
                             />
@@ -358,9 +384,9 @@ const DashboardPage = () => {
                         </div>
                         
                         <div>
-                          <h3 className="font-semibold text-gray-900">{swap.item.title}</h3>
+                          <h3 className="font-semibold text-gray-900">{swap.item ? swap.item.title : 'Item unavailable'}</h3>
                           <p className="text-sm text-gray-600">
-                            From {swap.toUser.name}
+                            From {swap.toUser?.name || 'Unknown'}
                           </p>
                           <div className="flex items-center space-x-4 mt-1">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(swap.status)}`}>
@@ -373,8 +399,8 @@ const DashboardPage = () => {
                       </div>
                       
                       <Link
-                        to={`/items/${swap.item.id}`}
-                        className="btn-secondary text-sm"
+                        to={swap.item ? `/items/${swap.item.id}` : '#'}
+                        className={`btn-secondary text-sm${!swap.item ? ' pointer-events-none opacity-50' : ''}`}
                       >
                         View Item
                       </Link>

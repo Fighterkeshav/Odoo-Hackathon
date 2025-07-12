@@ -53,8 +53,7 @@ db.Item.belongsTo(db.Category, { foreignKey: 'category_id', as: 'category' });
 db.Item.belongsTo(db.Size, { foreignKey: 'size_id', as: 'size' });
 db.Item.belongsTo(db.Condition, { foreignKey: 'condition_id', as: 'condition' });
 db.Item.hasMany(db.ItemImage, { foreignKey: 'item_id', as: 'images' });
-db.Item.hasMany(db.Swap, { foreignKey: 'requested_item_id', as: 'requestedSwaps' });
-db.Item.hasMany(db.Swap, { foreignKey: 'offered_item_id', as: 'offeredSwaps' });
+db.Item.hasMany(db.Swap, { foreignKey: 'item_id', as: 'swaps' });
 db.Item.hasMany(db.AdminAction, { foreignKey: 'item_id', as: 'adminActions' });
 db.Item.hasMany(db.Wishlist, { foreignKey: 'item_id', as: 'wishlistedBy' });
 
@@ -65,8 +64,7 @@ db.Tag.belongsToMany(db.Item, { through: db.ItemTag, foreignKey: 'tag_id', as: '
 // Swap associations
 db.Swap.belongsTo(db.User, { foreignKey: 'from_user_id', as: 'fromUser' });
 db.Swap.belongsTo(db.User, { foreignKey: 'to_user_id', as: 'toUser' });
-db.Swap.belongsTo(db.Item, { foreignKey: 'requested_item_id', as: 'requestedItem' });
-db.Swap.belongsTo(db.Item, { foreignKey: 'offered_item_id', as: 'offeredItem' });
+db.Swap.belongsTo(db.Item, { foreignKey: 'item_id', as: 'item' });
 
 // AdminAction associations
 db.AdminAction.belongsTo(db.User, { foreignKey: 'admin_user_id', as: 'admin' });

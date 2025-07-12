@@ -66,29 +66,45 @@ router.post('/', authenticateToken, [
       status: 'pending'
     });
 
+    // If it's a redeem request, update user points immediately
+    let updatedUser = null;
+    if (type === 'redeem') {
+      const user = await User.findByPk(from_user_id);
+      await user.update({
+        points_balance: user.points_balance - 1
+      });
+      updatedUser = await User.findByPk(from_user_id, {
+        attributes: ['id', 'name', 'email', 'bio', 'is_admin', 'points_balance', 'profile_image_url', 'latitude', 'longitude', 'address', 'city', 'state', 'country', 'postal_code']
+      });
+    }
+
     const createdSwap = await Swap.findByPk(swap.id, {
       include: [
         {
           model: Item,
           as: 'item',
-          include: [{ model: User, as: 'owner', attributes: ['id', 'name'] }]
+          include: [
+            { model: User, as: 'owner', attributes: ['id', 'name'] },
+            { model: require('../models').ItemImage, as: 'images' }
+          ]
         },
         {
           model: User,
           as: 'fromUser',
-          attributes: ['id', 'name']
+          attributes: ['id', 'name', 'points_balance']
         },
         {
           model: User,
           as: 'toUser',
-          attributes: ['id', 'name']
+          attributes: ['id', 'name', 'points_balance']
         }
       ]
     });
 
     res.status(201).json({
       message: `${type === 'redeem' ? 'Redemption' : 'Swap'} request created successfully`,
-      swap: createdSwap
+      swap: createdSwap,
+      user: updatedUser
     });
   } catch (error) {
     console.error('Create swap error:', error);
@@ -205,12 +221,16 @@ router.put('/:id/respond', authenticateToken, [
       }
     }
 
+    // Get updated swap with all related data
     const updatedSwap = await Swap.findByPk(swap.id, {
       include: [
         {
           model: Item,
           as: 'item',
-          include: [{ model: User, as: 'owner', attributes: ['id', 'name'] }]
+          include: [
+            { model: User, as: 'owner', attributes: ['id', 'name'] },
+            { model: require('../models').ItemImage, as: 'images' }
+          ]
         },
         {
           model: User,
@@ -225,9 +245,15 @@ router.put('/:id/respond', authenticateToken, [
       ]
     });
 
+    // Get updated user data for the current user
+    const updatedUser = await User.findByPk(req.user.id, {
+      attributes: ['id', 'name', 'email', 'bio', 'is_admin', 'points_balance', 'profile_image_url', 'latitude', 'longitude', 'address', 'city', 'state', 'country', 'postal_code']
+    });
+
     res.json({
       message: `Swap request ${status} successfully`,
-      swap: updatedSwap
+      swap: updatedSwap,
+      updatedUser: updatedUser
     });
   } catch (error) {
     console.error('Respond to swap error:', error);
