@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { 
@@ -13,10 +14,12 @@ import {
   MapPin,
   Coins,
   Clock,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 
 const AdminPanel = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState(null);
   const [items, setItems] = useState([]);
   const [users, setUsers] = useState([]);
@@ -26,6 +29,14 @@ const AdminPanel = () => {
     status: '',
     category: ''
   });
+
+  useEffect(() => {
+    // Read tab from URL parameter
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['overview', 'items', 'users'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchData();
@@ -60,7 +71,7 @@ const AdminPanel = () => {
   const handleItemApproval = async (itemId, status) => {
     try {
       await axios.put(`/api/admin/items/${itemId}/approve`, { status });
-      toast.success(`Item ${status === 'available' ? 'approved' : 'rejected'} successfully`);
+      toast.success(`Item ${status === 'Available' ? 'approved' : 'rejected'} successfully`);
       fetchData();
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to update item';
@@ -75,6 +86,26 @@ const AdminPanel = () => {
       fetchData();
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to update user';
+      toast.error(message);
+    }
+  };
+
+  const handleRemoveItem = async (itemId) => {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently remove "${item.title}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await axios.delete(`/api/admin/items/${itemId}`);
+      toast.success('Item removed successfully');
+      fetchData();
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to remove item';
       toast.error(message);
     }
   };
@@ -101,9 +132,11 @@ const AdminPanel = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      available: 'bg-green-100 text-green-800',
-      swapped: 'bg-blue-100 text-blue-800'
+      'Under Review': 'bg-yellow-100 text-yellow-800',
+      'Available': 'bg-green-100 text-green-800',
+      'Swapped': 'bg-blue-100 text-blue-800',
+      'Rejected': 'bg-red-100 text-red-800',
+      'Redeemed': 'bg-purple-100 text-purple-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -145,7 +178,10 @@ const AdminPanel = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSearchParams({ tab: tab.id });
+              }}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
                 activeTab === tab.id
                   ? 'border-primary-500 text-primary-600'
@@ -270,9 +306,11 @@ const AdminPanel = () => {
                     className="input-field"
                   >
                     <option value="">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="available">Available</option>
-                    <option value="swapped">Swapped</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Available">Available</option>
+                    <option value="Swapped">Swapped</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Redeemed">Redeemed</option>
                   </select>
                 </div>
                 <div>
@@ -328,12 +366,12 @@ const AdminPanel = () => {
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
                           <User className="h-4 w-4 mr-1" />
-                          <span>{item.owner.username}</span>
-                          {item.owner.location && (
+                          <span>{item.owner?.name || 'Unknown'}</span>
+                          {item.owner?.city && item.owner?.country && (
                             <>
                               <span className="mx-1">•</span>
                               <MapPin className="h-4 w-4 mr-1" />
-                              <span>{item.owner.location}</span>
+                              <span>{item.owner.city}, {item.owner.country}</span>
                             </>
                           )}
                         </div>
@@ -342,17 +380,17 @@ const AdminPanel = () => {
                     
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-500">{formatDate(item.created_at)}</span>
-                      {getStatus(item) === 'pending' && (
+                      {getStatus(item) === 'Under Review' && (
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => handleItemApproval(item.id, 'available')}
+                            onClick={() => handleItemApproval(item.id, 'Available')}
                             className="btn-primary text-sm flex items-center"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Approve
                           </button>
                           <button
-                            onClick={() => handleItemApproval(item.id, 'rejected')}
+                            onClick={() => handleItemApproval(item.id, 'Rejected')}
                             className="btn-danger text-sm flex items-center"
                           >
                             <XCircle className="h-4 w-4 mr-1" />
@@ -360,6 +398,13 @@ const AdminPanel = () => {
                           </button>
                         </div>
                       )}
+                      <button
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="btn-danger text-sm flex items-center"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Remove
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -393,19 +438,19 @@ const AdminPanel = () => {
                         <p className="text-sm text-gray-600">{user.email}</p>
                         <p className="text-sm text-gray-600">{user.bio}</p>
                         <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                          {user.location && (
+                          {user.city && user.country && (
                             <div className="flex items-center">
                               <MapPin className="h-4 w-4 mr-1" />
-                              <span>{user.location}</span>
+                              <span>{user.city}, {user.country}</span>
                             </div>
                           )}
                           <div className="flex items-center">
                             <Coins className="h-4 w-4 mr-1" />
-                            <span>{user.points} points</span>
+                            <span>{user.points_balance || 0} points</span>
                           </div>
                           <div className="flex items-center">
                             <Gift className="h-4 w-4 mr-1" />
-                            <span>{user.items.length} items</span>
+                            <span>{user.items?.length || 0} items</span>
                           </div>
                         </div>
                       </div>

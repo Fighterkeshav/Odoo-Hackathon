@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ const ItemsPage = () => {
   const [sizes, setSizes] = useState([]);
   const [conditions, setConditions] = useState([]);
   const [tags, setTags] = useState([]);
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   useEffect(() => {
     // Fetch filter options from backend
@@ -35,11 +36,26 @@ const ItemsPage = () => {
       setTags(tagRes.data);
     };
     fetchMeta();
+    
+    // Initial fetch of items
+    fetchItems();
   }, []);
 
   useEffect(() => {
-    fetchItems();
-  }, [filters]);
+    // Only fetch items when non-search filters change
+    if (filters.category_id || filters.size_id || filters.condition_id || filters.tag_id) {
+      fetchItems();
+    }
+  }, [filters.category_id, filters.size_id, filters.condition_id, filters.tag_id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
   const fetchItems = async () => {
     try {
@@ -67,13 +83,33 @@ const ItemsPage = () => {
     }));
   };
 
+  const handleSearchChange = (value) => {
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Update the search filter immediately for UI responsiveness
+    setFilters(prev => ({
+      ...prev,
+      search: value
+    }));
+
+    // Set a new timeout to fetch items after 500ms of no typing
+    const timeout = setTimeout(() => {
+      fetchItems();
+    }, 500);
+
+    setSearchTimeout(timeout);
+  };
+
   const getConditionColor = (condition) => {
     const colors = {
-      new: 'bg-green-100 text-green-800',
-      'like-new': 'bg-blue-100 text-blue-800',
-      good: 'bg-yellow-100 text-yellow-800',
-      fair: 'bg-orange-100 text-orange-800',
-      poor: 'bg-red-100 text-red-800'
+      'New': 'bg-green-100 text-green-800',
+      'Like New': 'bg-blue-100 text-blue-800',
+      'Good': 'bg-yellow-100 text-yellow-800',
+      'Fair': 'bg-orange-100 text-orange-800',
+      'Poor': 'bg-red-100 text-red-800'
     };
     return colors[condition] || 'bg-gray-100 text-gray-800';
   };
@@ -117,7 +153,7 @@ const ItemsPage = () => {
                 type="text"
                 placeholder="Search items..."
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="input-field pl-10"
               />
             </div>
@@ -130,6 +166,7 @@ const ItemsPage = () => {
               onChange={(e) => handleFilterChange('category_id', e.target.value)}
               className="input-field"
             >
+              <option value="">All Categories</option>
               {categories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -145,9 +182,10 @@ const ItemsPage = () => {
               onChange={(e) => handleFilterChange('size_id', e.target.value)}
               className="input-field"
             >
+              <option value="">All Sizes</option>
               {sizes.map(size => (
                 <option key={size.id} value={size.id}>
-                  {size.name}
+                  {size.label}
                 </option>
               ))}
             </select>
@@ -160,9 +198,10 @@ const ItemsPage = () => {
               onChange={(e) => handleFilterChange('condition_id', e.target.value)}
               className="input-field"
             >
+              <option value="">All Conditions</option>
               {conditions.map(condition => (
                 <option key={condition.id} value={condition.id}>
-                  {condition.name}
+                  {condition.label}
                 </option>
               ))}
             </select>
@@ -175,6 +214,7 @@ const ItemsPage = () => {
               onChange={(e) => handleFilterChange('tag_id', e.target.value)}
               className="input-field"
             >
+              <option value="">All Tags</option>
               {tags.map(tag => (
                 <option key={tag.id} value={tag.id}>
                   {tag.name}
@@ -226,15 +266,15 @@ const ItemsPage = () => {
               {viewMode === 'grid' ? (
                 <div>
                   <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200 mb-4">
-                    {item.image_url ? (
+                    {item.images && item.images.length > 0 ? (
                       <img
-                        src={`http://localhost:5000${item.image_url}`}
+                        src={`http://localhost:5000${item.images[0].image_url}`}
                         alt={item.title}
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full text-4xl">
-                        {getCategoryIcon(item.category)}
+                        {getCategoryIcon(item.category?.name)}
                       </div>
                     )}
                   </div>
@@ -245,20 +285,20 @@ const ItemsPage = () => {
                     </h3>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{item.size}</span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition)}`}>
-                        {item.condition}
+                      <span className="text-sm text-gray-600">{item.size?.label}</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition?.label)}`}>
+                        {item.condition?.label}
                       </span>
                     </div>
                     
                     <div className="flex items-center text-sm text-gray-500">
                       <User className="h-4 w-4 mr-1" />
-                      <span>{item.owner.name}</span>
-                      {item.owner.location && (
+                      <span>{item.owner?.name}</span>
+                      {item.owner?.city && item.owner?.country && (
                         <>
                           <span className="mx-1">•</span>
                           <MapPin className="h-4 w-4 mr-1" />
-                          <span>{item.owner.location}</span>
+                          <span>{item.owner.city}, {item.owner.country}</span>
                         </>
                       )}
                     </div>
@@ -267,15 +307,15 @@ const ItemsPage = () => {
               ) : (
                 <div className="flex space-x-4">
                   <div className="flex-shrink-0 w-24 h-24 bg-gray-200 rounded-lg overflow-hidden">
-                    {item.image_url ? (
+                    {item.images && item.images.length > 0 ? (
                       <img
-                        src={`http://localhost:5000${item.image_url}`}
+                        src={`http://localhost:5000${item.images[0].image_url}`}
                         alt={item.title}
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full text-2xl">
-                        {getCategoryIcon(item.category)}
+                        {getCategoryIcon(item.category?.name)}
                       </div>
                     )}
                   </div>
@@ -289,14 +329,21 @@ const ItemsPage = () => {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>{item.size}</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition)}`}>
-                          {item.condition}
+                        <span>{item.size?.label}</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition?.label)}`}>
+                          {item.condition?.label}
                         </span>
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <User className="h-4 w-4 mr-1" />
-                        <span>{item.owner.name}</span>
+                        <span>{item.owner?.name}</span>
+                        {item.owner?.city && item.owner?.country && (
+                          <>
+                            <span className="mx-1">•</span>
+                            <MapPin className="h-4 w-4 mr-1" />
+                            <span>{item.owner.city}, {item.owner.country}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -24,7 +24,7 @@ router.get('/items', async (req, res) => {
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'name', 'email', 'bio']
+          attributes: ['id', 'name', 'email', 'bio', 'city', 'country']
         }
       ],
       order: [['created_at', 'DESC']]
@@ -39,7 +39,7 @@ router.get('/items', async (req, res) => {
 
 // Approve or reject item
 router.put('/items/:id/approve', [
-  body('status').isIn(['available', 'rejected']).withMessage('Status must be either available or rejected')
+  body('status').isIn(['Available', 'Rejected']).withMessage('Status must be either Available or Rejected')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -56,7 +56,7 @@ router.put('/items/:id/approve', [
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    if (item.status !== 'pending') {
+    if (item.status !== 'Under Review') {
       return res.status(400).json({ message: 'Item has already been processed' });
     }
 
@@ -64,7 +64,7 @@ router.put('/items/:id/approve', [
     await item.update({ status });
 
     // If approved, give point to the owner
-    if (status === 'available') {
+    if (status === 'Available') {
       await item.owner.update({
         points_balance: item.owner.points_balance + 1
       });
@@ -81,12 +81,43 @@ router.put('/items/:id/approve', [
     });
 
     res.json({
-      message: `Item ${status === 'available' ? 'approved' : 'rejected'} successfully`,
+      message: `Item ${status === 'Available' ? 'approved' : 'rejected'} successfully`,
       item: updatedItem
     });
   } catch (error) {
     console.error('Admin approve item error:', error);
     res.status(500).json({ message: 'Server error processing item' });
+  }
+});
+
+// Remove/delete item permanently
+router.delete('/items/:id', async (req, res) => {
+  try {
+    const item = await Item.findByPk(req.params.id, {
+      include: [{ model: User, as: 'owner' }]
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // Store item info for response
+    const itemInfo = {
+      id: item.id,
+      title: item.title,
+      owner: item.owner.name
+    };
+
+    // Permanently delete the item
+    await item.destroy();
+
+    res.json({
+      message: 'Item removed successfully',
+      removedItem: itemInfo
+    });
+  } catch (error) {
+    console.error('Admin remove item error:', error);
+    res.status(500).json({ message: 'Server error removing item' });
   }
 });
 
@@ -166,9 +197,9 @@ router.get('/stats', async (req, res) => {
   try {
     const totalUsers = await User.count();
     const totalItems = await Item.count();
-    const pendingItems = await Item.count({ where: { status: 'pending' } });
-    const availableItems = await Item.count({ where: { status: 'available' } });
-    const swappedItems = await Item.count({ where: { status: 'swapped' } });
+    const pendingItems = await Item.count({ where: { status: 'Under Review' } });
+    const availableItems = await Item.count({ where: { status: 'Available' } });
+    const swappedItems = await Item.count({ where: { status: 'Swapped' } });
     const totalSwaps = await Swap.count();
     const pendingSwaps = await Swap.count({ where: { status: 'pending' } });
 
@@ -181,7 +212,7 @@ router.get('/stats', async (req, res) => {
 
     const recentSwaps = await Swap.findAll({
       include: [
-        { model: Item, as: 'item', attributes: ['title'] },
+        { model: Item, as: 'requestedItem', attributes: ['title'] },
         { model: User, as: 'fromUser', attributes: ['name'] },
         { model: User, as: 'toUser', attributes: ['name'] }
       ],

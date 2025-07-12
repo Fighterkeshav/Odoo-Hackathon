@@ -5,7 +5,6 @@ const fs = require('fs');
 const { body, validationResult } = require('express-validator');
 const { Item, User, Category, Size, Condition, ItemImage, Tag, ItemTag } = require('../models');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
-const GeminiService = require('../services/gemini');
 
 const router = express.Router();
 
@@ -68,7 +67,7 @@ router.get('/', optionalAuth, async (req, res) => {
     const items = await Item.findAll({
       where: whereClause,
       include: [
-        { model: User, as: 'owner', attributes: ['id', 'name', 'profile_image_url'] },
+        { model: User, as: 'owner', attributes: ['id', 'name', 'profile_image_url', 'city', 'country'] },
         { model: Category, as: 'category' },
         { model: Size, as: 'size' },
         { model: Condition, as: 'condition' },
@@ -94,7 +93,27 @@ router.get('/:id', optionalAuth, async (req, res) => {
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'name', 'bio']
+          attributes: ['id', 'name', 'bio', 'city', 'country']
+        },
+        {
+          model: Category,
+          as: 'category'
+        },
+        {
+          model: Size,
+          as: 'size'
+        },
+        {
+          model: Condition,
+          as: 'condition'
+        },
+        {
+          model: Tag,
+          as: 'tags'
+        },
+        {
+          model: ItemImage,
+          as: 'images'
         }
       ]
     });
@@ -224,7 +243,7 @@ router.post('/', authenticateToken, upload.fields([
 
 // Update item status (for item owner)
 router.put('/:id/status', authenticateToken, [
-  body('status').isIn(['available', 'swapped']).withMessage('Invalid status')
+  body('status').isIn(['Available', 'Swapped', 'Redeemed']).withMessage('Invalid status')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -237,7 +256,7 @@ router.put('/:id/status', authenticateToken, [
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    if (item.owner_id !== req.user.id) {
+    if (item.user_id !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to update this item' });
     }
 
@@ -256,20 +275,30 @@ router.put('/:id/status', authenticateToken, [
 // Delete item (for item owner)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const item = await Item.findByPk(req.params.id);
+    const item = await Item.findByPk(req.params.id, {
+      include: [
+        {
+          model: ItemImage,
+          as: 'images'
+        }
+      ]
+    });
+    
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    if (item.owner_id !== req.user.id) {
+    if (item.user_id !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to delete this item' });
     }
 
-    // Delete image file if exists
-    if (item.image_url) {
-      const imagePath = path.join(__dirname, '../..', item.image_url);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+    // Delete image files if they exist
+    if (item.images && item.images.length > 0) {
+      for (const image of item.images) {
+        const imagePath = path.join(__dirname, '../..', image.image_url);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
       }
     }
 

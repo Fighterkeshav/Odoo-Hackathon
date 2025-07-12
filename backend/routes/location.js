@@ -155,11 +155,11 @@ router.get('/nearby-items', authenticateToken, [
 router.put('/update-location', authenticateToken, [
   body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude is required'),
   body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude is required'),
-  body('address').isLength({ min: 5, max: 200 }).withMessage('Address must be between 5 and 200 characters'),
   body('city').isLength({ min: 2, max: 50 }).withMessage('City must be between 2 and 50 characters'),
-  body('state').isLength({ min: 2, max: 50 }).withMessage('State must be between 2 and 50 characters'),
   body('country').isLength({ min: 2, max: 50 }).withMessage('Country must be between 2 and 50 characters'),
-  body('postal_code').isLength({ min: 3, max: 10 }).withMessage('Postal code must be between 3 and 10 characters')
+  body('address').optional().isLength({ min: 5, max: 200 }).withMessage('Address must be between 5 and 200 characters'),
+  body('state').optional().isLength({ min: 2, max: 50 }).withMessage('State must be between 2 and 50 characters'),
+  body('postal_code').optional().isLength({ min: 3, max: 10 }).withMessage('Postal code must be between 3 and 10 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -170,10 +170,10 @@ router.put('/update-location', authenticateToken, [
     const { 
       latitude, 
       longitude, 
-      address, 
       city, 
+      country,
+      address, 
       state, 
-      country, 
       postal_code 
     } = req.body;
 
@@ -182,15 +182,19 @@ router.put('/update-location', authenticateToken, [
       return res.status(404).json({ message: 'User not found' });
     }
 
-    await user.update({
+    // Only update fields that are provided
+    const updateData = {
       latitude,
       longitude,
-      address,
       city,
-      state,
-      country,
-      postal_code
-    });
+      country
+    };
+
+    if (address) updateData.address = address;
+    if (state) updateData.state = state;
+    if (postal_code) updateData.postal_code = postal_code;
+
+    await user.update(updateData);
 
     res.json({
       message: 'Location updated successfully',

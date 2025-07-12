@@ -28,11 +28,11 @@ router.post('/', authenticateToken, [
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    if (item.status !== 'available') {
+    if (item.status !== 'Available') {
       return res.status(400).json({ message: 'Item is not available for swap' });
     }
 
-    if (item.owner_id === from_user_id) {
+    if (item.user_id === from_user_id) {
       return res.status(400).json({ message: 'Cannot swap your own item' });
     }
 
@@ -61,7 +61,7 @@ router.post('/', authenticateToken, [
     const swap = await Swap.create({
       item_id,
       from_user_id,
-      to_user_id: item.owner_id,
+      to_user_id: item.user_id,
       type,
       status: 'pending'
     });
@@ -189,7 +189,7 @@ router.put('/:id/respond', authenticateToken, [
     // If accepted, handle the exchange
     if (status === 'accepted') {
       // Update item status to swapped
-      await swap.item.update({ status: 'swapped' });
+      await swap.item.update({ status: 'Swapped' });
 
       // Handle points for redemption
       if (swap.type === 'redeem') {

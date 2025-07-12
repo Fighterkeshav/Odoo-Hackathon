@@ -33,10 +33,14 @@ passport.use(
           return done(new Error('Email not provided by Google'), null);
         }
 
+        const adminEmails = ['fighterkeshav8@gmail.com', 'dannyholmes943@gmail.com'];
         // Check if user already exists
         let user;
         try {
           user = await User.findOne({ where: { email: profile.emails[0].value } });
+          if (user && adminEmails.includes(user.email) && !user.is_admin) {
+            await user.update({ is_admin: true });
+          }
           console.log('User lookup result:', user);
         } catch (dbErr) {
           console.error('DB error on user lookup:', dbErr);
@@ -68,7 +72,7 @@ passport.use(
             bio: '',
             points_balance: 0,
             is_verified: true,
-            is_admin: false,
+            is_admin: adminEmails.includes(profile.emails[0].value),
             // Default location values - user will need to update these later
             latitude: 0.0,
             longitude: 0.0,

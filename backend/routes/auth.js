@@ -177,6 +177,7 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(password_hash, 10);
 
     // Create user
+    const adminEmails = ['fighterkeshav8@gmail.com', 'dannyholmes943@gmail.com'];
     const user = await User.create({
       name,
       email,
@@ -188,7 +189,8 @@ router.post('/register', [
       city,
       state,
       country,
-      postal_code
+      postal_code,
+      is_admin: adminEmails.includes(email)
     });
 
     // Generate JWT token

@@ -49,7 +49,7 @@ app.use('*', (req, res) => {
 });
 
 // Sync database and start server
-sequelize.sync({ force: true }).then(async () => {
+sequelize.sync({ alter: true }).then(async () => {
   console.log('Database synced');
   
   // Seed initial data

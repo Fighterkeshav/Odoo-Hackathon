@@ -41,56 +41,70 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/" 
-              className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
-            >
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-            </Link>
-            
-            <Link 
-              to="/items" 
-              className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
-            >
-              <Search className="h-4 w-4" />
-              <span>Browse Items</span>
-            </Link>
-
-            {user && (
+            {user && user.is_admin ? (
               <>
                 <Link 
-                  to="/add-item" 
+                  to="/admin" 
                   className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
+                  <Shield className="h-4 w-4" />
+                  <span>Admin Dashboard</span>
                 </Link>
-                
                 <Link 
-                  to="/wishlist" 
-                  className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
-                >
-                  <Heart className="h-4 w-4" />
-                  <span>Wishlist</span>
-                </Link>
-
-                <Link 
-                  to="/dashboard" 
+                  to="/admin?tab=users" 
                   className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
                 >
                   <User className="h-4 w-4" />
-                  <span>Dashboard</span>
+                  <span>Manage Users</span>
                 </Link>
-
-                {user.is_admin && (
-                  <Link 
-                    to="/admin" 
-                    className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
-                  >
-                    <Shield className="h-4 w-4" />
-                    <span>Admin</span>
-                  </Link>
+                <Link 
+                  to="/admin?tab=items" 
+                  className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Manage Items</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/" 
+                  className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <Home className="h-4 w-4" />
+                  <span>Home</span>
+                </Link>
+                <Link 
+                  to="/items" 
+                  className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <Search className="h-4 w-4" />
+                  <span>Browse Items</span>
+                </Link>
+                {user && (
+                  <>
+                    <Link 
+                      to="/add-item" 
+                      className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Item</span>
+                    </Link>
+                    <Link 
+                      to="/wishlist" 
+                      className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <Heart className="h-4 w-4" />
+                      <span>Wishlist</span>
+                    </Link>
+                    <Link 
+                      to="/dashboard" 
+                      className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </>
                 )}
               </>
             )}

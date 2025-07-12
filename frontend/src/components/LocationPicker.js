@@ -1,22 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, Building, Home, Store, Coffee, GraduationCap, Heart, CreditCard, Car, Star } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import LocationService from '../services/locationService';
 
 const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
   const [location, setLocation] = useState({
     latitude: initialLocation?.latitude || '',
     longitude: initialLocation?.longitude || '',
-    address: initialLocation?.address || '',
     city: initialLocation?.city || '',
-    state: initialLocation?.state || '',
-    country: initialLocation?.country || '',
-    postal_code: initialLocation?.postal_code || ''
+    country: initialLocation?.country || ''
   });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchType, setSearchType] = useState('google'); // 'google', 'nominatim', 'overpass', or 'combined'
-  const [useGoogleMaps, setUseGoogleMaps] = useState(true);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+
+  useEffect(() => {
+    if (!location.city || !location.country || !location.latitude || !location.longitude) {
+      detectLocation();
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  const detectLocation = () => {
+    setGeoLoading(true);
+    setGeoError('');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const results = await LocationService.reverseGeocode(latitude, longitude);
+          
+          // Extract city and country from address components
+          let city = '';
+          let country = '';
+          
+          if (results.details) {
+            // Handle Google Maps response
+            if (Array.isArray(results.details)) {
+              results.details.forEach(component => {
+                if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+                  city = component.long_name;
+                }
+                if (component.types.includes('country')) {
+                  country = component.long_name;
+                }
+              });
+            }
+            // Handle Nominatim response
+            else if (typeof results.details === 'object') {
+              city = results.details.city || results.details.town || results.details.village || results.details.county || '';
+              country = results.details.country || '';
+            }
+          }
+          
+          setLocation({
+            latitude,
+            longitude,
+            city,
+            country
+          });
+        } catch (err) {
+          console.error('Reverse geocoding error:', err);
+          setGeoError('Could not detect city/country from your location.');
+        }
+        setGeoLoading(false);
+      }, (err) => {
+        setGeoError('Location access denied or unavailable.');
+        setGeoLoading(false);
+      });
+    } else {
+      setGeoError('Geolocation is not supported by your browser.');
+      setGeoLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -26,115 +80,12 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
     }));
   };
 
-  const getIconComponent = (iconName) => {
-    switch (iconName) {
-      case 'coffee':
-        return <Coffee className="h-4 w-4" />;
-      case 'store':
-        return <Store className="h-4 w-4" />;
-      case 'building':
-        return <Building className="h-4 w-4" />;
-      case 'graduation-cap':
-        return <GraduationCap className="h-4 w-4" />;
-      case 'heart':
-        return <Heart className="h-4 w-4" />;
-      case 'credit-card':
-        return <CreditCard className="h-4 w-4" />;
-      case 'car':
-        return <Car className="h-4 w-4" />;
-      default:
-        return <MapPin className="h-4 w-4" />;
-    }
-  };
-
-  const searchLocation = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsLoading(true);
-    setSearchResults([]);
-    
-    try {
-      let results = [];
-      
-      switch (searchType) {
-        case 'google':
-          try {
-            results = await LocationService.searchGooglePlaces(searchQuery, 5);
-          } catch (error) {
-            console.log('Google Places failed, trying Google Geocoding...');
-            results = await LocationService.searchGoogleGeocoding(searchQuery, 5);
-          }
-          break;
-        case 'nominatim':
-          results = await LocationService.searchNominatim(searchQuery, 5);
-          break;
-        case 'overpass':
-          results = await LocationService.searchOverpass(searchQuery, 5);
-          break;
-        case 'combined':
-        default:
-          results = await LocationService.searchCombined(searchQuery, 3);
-          break;
-      }
-      
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Error searching location:', error);
-      // Fallback to Nominatim if all else fails
-      try {
-        const fallbackResults = await LocationService.searchNominatim(searchQuery, 5);
-        setSearchResults(fallbackResults);
-      } catch (fallbackError) {
-        console.error('All search methods failed:', fallbackError);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const selectLocation = (result) => {
-    const newLocation = {
-      latitude: result.latitude,
-      longitude: result.longitude,
-      address: result.address || result.name.split(',')[0] || '',
-      city: result.city || result.address?.city || result.address?.town || result.address?.village || '',
-      state: result.state || result.address?.state || '',
-      country: result.country || result.address?.country || '',
-      postal_code: result.postal_code || result.address?.postcode || ''
-    };
-    
-    setLocation(newLocation);
-    setSearchResults([]);
-    setSearchQuery(result.name);
-    onLocationSelect(newLocation);
-  };
-
   const handleLocationSelect = () => {
+    if (!location.city || !location.country || !location.latitude || !location.longitude) {
+      alert('Please provide at least your city, country, and allow location access.');
+      return;
+    }
     onLocationSelect(location);
-  };
-
-  const getSearchPlaceholder = () => {
-    switch (searchType) {
-      case 'google':
-        return "Search with Google Maps (places, businesses, addresses)...";
-      case 'nominatim':
-        return "Search for a location, city, or address...";
-      case 'overpass':
-        return "Search for places, shops, restaurants, offices...";
-      case 'combined':
-      default:
-        return "Search for anything - locations, places, businesses...";
-    }
-  };
-
-  const getMapUrl = () => {
-    if (!location.latitude || !location.longitude) return null;
-    
-    if (useGoogleMaps) {
-      return `https://www.google.com/maps/embed/v1/place?key=AIzaSyCWD574Wyf_RcaejP7S99OB2jV__wcNxTQ&q=${location.latitude},${location.longitude}&zoom=15`;
-    } else {
-      return `https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude-0.01},${location.latitude-0.01},${location.longitude+0.01},${location.latitude+0.01}&layer=mapnik&marker=${location.latitude},${location.longitude}`;
-    }
   };
 
   return (
@@ -143,247 +94,46 @@ const LocationPicker = ({ onLocationSelect, initialLocation = null }) => {
         <MapPin className="h-5 w-5 text-gray-500" />
         <h3 className="text-lg font-semibold text-gray-900">Location Information</h3>
       </div>
-      
-      {/* Search Type Toggle */}
-      <div className="flex space-x-2 mb-4">
-        <button
-          onClick={() => setSearchType('google')}
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
-            searchType === 'google'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Google Maps
-        </button>
-        <button
-          onClick={() => setSearchType('combined')}
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
-            searchType === 'combined'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Combined
-        </button>
-        <button
-          onClick={() => setSearchType('nominatim')}
-          className={`px-3 py-1 rounded-md text-sm font-medium ${
-            searchType === 'nominatim'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          OpenStreetMap
-        </button>
-      </div>
-      
-      {/* Search Location */}
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          placeholder={getSearchPlaceholder()}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          onKeyPress={(e) => e.key === 'Enter' && searchLocation()}
-        />
-        <button
-          onClick={searchLocation}
-          disabled={isLoading}
-          className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 flex items-center space-x-2"
-        >
-          <Search className="h-4 w-4" />
-          {isLoading ? 'Searching...' : 'Search'}
-        </button>
-      </div>
-
-      {/* Search Results */}
-      {searchResults.length > 0 && (
-        <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
-          {searchResults.map((result) => (
-            <button
-              key={`${result.source}_${result.id}`}
-              onClick={() => selectLocation(result)}
-              className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
-            >
-              {getIconComponent(result.icon)}
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{result.name}</div>
-                <div className="text-sm text-gray-500">
-                  {result.type !== 'location' && <span className="capitalize">{result.type}</span>}
-                  {result.address && ` • ${result.address}`}
-                  {result.rating && (
-                    <span className="flex items-center text-yellow-500 ml-2">
-                      <Star className="h-3 w-3 fill-current" />
-                      <span className="ml-1 text-xs">{result.rating}</span>
-                      {result.user_ratings_total && (
-                        <span className="text-gray-400 ml-1 text-xs">({result.user_ratings_total})</span>
-                      )}
-                    </span>
-                  )}
-                  {result.source && <span className="text-xs text-gray-400 ml-2">({result.source})</span>}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Location Form */}
+      {geoLoading && <div className="text-blue-600">Detecting your location...</div>}
+      {geoError && <div className="text-red-600">{geoError}</div>}
+      <button
+        onClick={detectLocation}
+        className="px-3 py-1 rounded bg-primary-600 text-white hover:bg-primary-700"
+        disabled={geoLoading}
+      >
+        Detect My Location
+      </button>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Latitude *
-          </label>
-          <input
-            type="number"
-            step="any"
-            name="latitude"
-            value={location.latitude}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="e.g., 40.7128"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Longitude *
-          </label>
-          <input
-            type="number"
-            step="any"
-            name="longitude"
-            value={location.longitude}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="e.g., -74.0060"
-            required
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Address *
-          </label>
-          <input
-            type="text"
-            name="address"
-            value={location.address}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Street address"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            City *
-          </label>
+          <label className="block text-sm font-medium text-gray-700">City *</label>
           <input
             type="text"
             name="city"
             value={location.city}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="City"
+            className="input-field"
             required
           />
         </div>
-        
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            State/Province *
-          </label>
-          <input
-            type="text"
-            name="state"
-            value={location.state}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="State or Province"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Country *
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Country *</label>
           <input
             type="text"
             name="country"
             value={location.country}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Country"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Postal Code *
-          </label>
-          <input
-            type="text"
-            name="postal_code"
-            value={location.postal_code}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Postal Code"
+            className="input-field"
             required
           />
         </div>
       </div>
-
-      {/* Map Preview */}
-      {location.latitude && location.longitude && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Location Preview
-            </label>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setUseGoogleMaps(true)}
-                className={`px-2 py-1 text-xs rounded ${
-                  useGoogleMaps
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Google Maps
-              </button>
-              <button
-                onClick={() => setUseGoogleMaps(false)}
-                className={`px-2 py-1 text-xs rounded ${
-                  !useGoogleMaps
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                OpenStreetMap
-              </button>
-            </div>
-          </div>
-          <div className="w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
-            <iframe
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              scrolling="no"
-              marginHeight="0"
-              marginWidth="0"
-              src={getMapUrl()}
-              title="Location Preview"
-            />
-          </div>
-        </div>
-      )}
+      <button
+        onClick={handleLocationSelect}
+        className="btn-primary w-full mt-4"
+        disabled={geoLoading}
+      >
+        Save Location
+      </button>
     </div>
   );
 };

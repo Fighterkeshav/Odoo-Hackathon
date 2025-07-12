@@ -51,7 +51,7 @@ const ItemDetailPage = () => {
       return;
     }
 
-    if (item.owner_id === user.id) {
+    if (item.user_id === user.id) {
       toast.error('You cannot request your own item');
       return;
     }
@@ -76,6 +76,11 @@ const ItemDetailPage = () => {
     } finally {
       setSwapLoading(false);
     }
+  };
+
+  const handleBuy = async () => {
+    // Implement buy logic (e.g., create swap/redeem request)
+    alert('Buy request sent!');
   };
 
   const getConditionColor = (condition) => {
@@ -214,7 +219,7 @@ const ItemDetailPage = () => {
             <p className="text-gray-600 leading-relaxed">{item.description}</p>
           </div>
           {/* Owner Information */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Owner</h3>
             <div className="flex items-center space-x-3">
               {owner.profile_image_url ? (
@@ -230,11 +235,17 @@ const ItemDetailPage = () => {
                   <Coins className="h-4 w-4 mr-1" />
                   {owner.points_balance || 0} points
                 </div>
+                {owner.city && owner.country && (
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    <span>{owner.city}, {owner.country}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
           {/* Swap/Redeem Actions */}
-          {item.status === 'available' && user && item.owner_id !== user.id && (
+          {item.status === 'Available' && user && item.user_id !== user.id && (
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 bg-primary-50 rounded-lg">
                 <div className="flex items-center">
@@ -268,6 +279,16 @@ const ItemDetailPage = () => {
             </div>
           )}
 
+          {/* Buy Button (location-aware) */}
+          {user && item.status === 'Available' && item.owner?.id !== user.id && user.city && item.owner?.city && user.city === item.owner.city && (
+            <button
+              onClick={handleBuy}
+              className="btn-primary w-full mt-4"
+            >
+              Buy
+            </button>
+          )}
+
           {!user && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800 text-sm">
@@ -281,7 +302,7 @@ const ItemDetailPage = () => {
             </div>
           )}
 
-          {item.status !== 'available' && (
+          {item.status !== 'Available' && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-600 text-sm">
                 This item is no longer available for requests.
