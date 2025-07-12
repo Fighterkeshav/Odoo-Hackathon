@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Regular email/password login
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post('/api/auth/login', { email, password_hash: password });
       const { token: responseToken, user } = response.data;
       
       localStorage.setItem('token', responseToken);
