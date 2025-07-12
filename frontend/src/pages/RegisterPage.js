@@ -35,6 +35,9 @@ const RegisterPage = () => {
     if (formData.username.length < 2) {
       return 'Username must be at least 2 characters long';
     }
+    if (!formData.location || formData.location.length < 2) {
+      return 'Location is required and must be at least 2 characters long';
+    }
     return null;
   };
 
@@ -134,7 +137,7 @@ const RegisterPage = () => {
 
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                Location (Optional)
+                Location *
               </label>
               <div className="mt-1 relative">
                 <input
@@ -142,6 +145,7 @@ const RegisterPage = () => {
                   name="location"
                   type="text"
                   autoComplete="off"
+                  required
                   value={formData.location}
                   onChange={handleChange}
                   className="input-field pl-10"

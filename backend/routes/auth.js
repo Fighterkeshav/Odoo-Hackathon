@@ -34,7 +34,8 @@ router.get('/google/callback',
 router.post('/register', [
   body('username').isLength({ min: 2, max: 50 }).withMessage('Username must be between 2 and 50 characters'),
   body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('location').isLength({ min: 2, max: 100 }).withMessage('Location must be between 2 and 100 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -58,7 +59,7 @@ router.post('/register', [
       username,
       email,
       password: hashedPassword,
-      location: location || ''
+      location
     });
 
     // Generate JWT token

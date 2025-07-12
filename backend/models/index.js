@@ -9,12 +9,6 @@ if (!databaseUrl || !databaseUrl.startsWith('postgresql://')) {
 
 const sequelize = new Sequelize(databaseUrl, {
   dialect: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
-  },
   logging: false,
   pool: {
     max: 5,

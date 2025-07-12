@@ -29,8 +29,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     location: {
       type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: ''
+      allowNull: false,
+      validate: {
+        len: [2, 100]
+      }
     },
     is_admin: {
       type: DataTypes.BOOLEAN,
