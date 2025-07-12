@@ -30,6 +30,7 @@ app.use('/api/swaps', require('./routes/swaps'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/meta', require('./routes/meta'));
+app.use('/api/location', require('./routes/location'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

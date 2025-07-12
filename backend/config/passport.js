@@ -68,7 +68,15 @@ passport.use(
             bio: '',
             points_balance: 0,
             is_verified: true,
-            is_admin: false
+            is_admin: false,
+            // Default location values - user will need to update these later
+            latitude: 0.0,
+            longitude: 0.0,
+            address: 'Please update your address',
+            city: 'Please update your city',
+            state: 'Please update your state',
+            country: 'Please update your country',
+            postal_code: '00000'
           });
           console.log('New user created:', newUser);
         } catch (createErr) {
