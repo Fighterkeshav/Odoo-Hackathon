@@ -79,6 +79,15 @@ const AdminPanel = () => {
     }
   };
 
+  // Helper functions for normalized fields
+  const getItemMainImage = (item) => (item.images && item.images.length > 0 ? item.images[0].image_url : null);
+  const getItemTags = (item) => item.tags || [];
+  const getCategory = (item) => item.category ? item.category.name : '';
+  const getSize = (item) => item.size ? item.size.label : '';
+  const getCondition = (item) => item.condition ? item.condition.label : '';
+  const getType = (item) => item.type || '';
+  const getStatus = (item) => item.status || '';
+
   const getConditionColor = (condition) => {
     const colors = {
       new: 'bg-green-100 text-green-800',
@@ -292,9 +301,9 @@ const AdminPanel = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden">
-                        {item.image_url ? (
+                        {getItemMainImage(item) ? (
                           <img
-                            src={`http://localhost:5000${item.image_url}`}
+                            src={`http://localhost:5000${getItemMainImage(item)}`}
                             alt={item.title}
                             className="h-full w-full object-cover"
                           />
@@ -309,12 +318,12 @@ const AdminPanel = () => {
                         <h3 className="font-semibold text-gray-900">{item.title}</h3>
                         <p className="text-sm text-gray-600 mb-1">{item.description}</p>
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <span>{item.size}</span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition)}`}>
-                            {item.condition}
+                          <span>{getSize(item)}</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCondition(item)}`}>
+                            {getCondition(item)}
                           </span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
-                            {item.status}
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatus(item)}`}>
+                            {getStatus(item)}
                           </span>
                         </div>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
@@ -333,7 +342,7 @@ const AdminPanel = () => {
                     
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-500">{formatDate(item.created_at)}</span>
-                      {item.status === 'pending' && (
+                      {getStatus(item) === 'pending' && (
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleItemApproval(item.id, 'available')}
@@ -368,12 +377,21 @@ const AdminPanel = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center">
-                        <Users className="h-6 w-6 text-primary-600" />
+                        {user.profile_image_url ? (
+                          <img
+                            src={`http://localhost:5000${user.profile_image_url}`}
+                            alt={user.username}
+                            className="h-full w-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <User className="h-6 w-6 text-primary-600" />
+                        )}
                       </div>
                       
                       <div>
                         <h3 className="font-semibold text-gray-900">{user.username}</h3>
                         <p className="text-sm text-gray-600">{user.email}</p>
+                        <p className="text-sm text-gray-600">{user.bio}</p>
                         <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                           {user.location && (
                             <div className="flex items-center">

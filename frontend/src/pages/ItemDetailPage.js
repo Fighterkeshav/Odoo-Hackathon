@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Heart
 } from 'lucide-react';
+import WishlistButton from '../components/WishlistButton';
 
 const ItemDetailPage = () => {
   const { id } = useParams();
@@ -21,6 +22,9 @@ const ItemDetailPage = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [swapLoading, setSwapLoading] = useState(false);
+
+  // Gallery state for images
+  const [currentImage, setCurrentImage] = useState(0);
 
   useEffect(() => {
     fetchItem();
@@ -130,6 +134,16 @@ const ItemDetailPage = () => {
     );
   }
 
+  // Helper to get image URLs
+  const images = item.images && item.images.length > 0 ? item.images : [];
+  const tags = item.tags || [];
+  const category = item.category ? item.category.name : '';
+  const size = item.size ? item.size.label : '';
+  const condition = item.condition ? item.condition.label : '';
+  const type = item.type || '';
+  const status = item.status || '';
+  const owner = item.owner || {};
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
@@ -142,80 +156,84 @@ const ItemDetailPage = () => {
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Image Section */}
+        {/* Image Gallery Section */}
         <div>
-          <div className="bg-gray-200 rounded-lg overflow-hidden aspect-w-1 aspect-h-1">
-            {item.image_url ? (
+          <div className="bg-gray-200 rounded-lg overflow-hidden aspect-w-1 aspect-h-1 flex items-center justify-center">
+            {images.length > 0 ? (
               <img
-                src={`http://localhost:5000${item.image_url}`}
+                src={`http://localhost:5000${images[currentImage].image_url}`}
                 alt={item.title}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="flex items-center justify-center h-full text-8xl">
-                {getCategoryIcon(item.category)}
+                👕
               </div>
             )}
           </div>
+          {/* Gallery Thumbnails */}
+          {images.length > 1 && (
+            <div className="flex space-x-2 mt-4 justify-center">
+              {images.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={`http://localhost:5000${img.image_url}`}
+                  alt={`Thumbnail ${idx + 1}`}
+                  className={`h-16 w-16 object-cover rounded cursor-pointer border-2 ${currentImage === idx ? 'border-primary-500' : 'border-transparent'}`}
+                  onClick={() => setCurrentImage(idx)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Details Section */}
-        <div className="space-y-6">
+        <div>
           {/* Title and Status */}
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{item.title}</h1>
-            <div className="flex items-center space-x-4">
-              <span className={`px-3 py-1 text-sm font-medium rounded-full ${getConditionColor(item.condition)}`}>
-                {item.condition}
-              </span>
-              <span className="text-sm text-gray-500">Size: {item.size}</span>
-            </div>
+          <div className="flex items-center space-x-4 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">{item.title}</h1>
+            <span className="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800 border border-gray-300">{status}</span>
           </div>
-
+          <div className="flex items-center space-x-2 mb-4">
+            <span className="text-sm text-gray-500">Category: {category}</span>
+            <span className="text-sm text-gray-500">Type: {type}</span>
+            <span className="text-sm text-gray-500">Size: {size}</span>
+            <span className="text-sm text-gray-500">Condition: {condition}</span>
+          </div>
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {tags.map(tag => (
+                <span key={tag.id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">{tag.name}</span>
+              ))}
+            </div>
+          )}
           {/* Description */}
-          <div>
+          <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
             <p className="text-gray-600 leading-relaxed">{item.description}</p>
           </div>
-
           {/* Owner Information */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Owner</h3>
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <User className="h-5 w-5 text-primary-600" />
-              </div>
+              {owner.profile_image_url ? (
+                <img src={owner.profile_image_url} alt={owner.name} className="h-10 w-10 rounded-full object-cover" />
+              ) : (
+                <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary-600" />
+                </div>
+              )}
               <div>
-                <p className="font-medium text-gray-900">{item.owner.name}</p>
-                {item.owner.location && (
-                  <div className="flex items-center text-sm text-gray-500">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {item.owner.location}
-                  </div>
-                )}
+                <p className="font-medium text-gray-900">{owner.name}</p>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Coins className="h-4 w-4 mr-1" />
+                  {owner.points_balance || 0} points
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Item Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center text-sm text-gray-500 mb-1">
-                <Calendar className="h-4 w-4 mr-2" />
-                Listed
-              </div>
-              <p className="font-medium text-gray-900">{formatDate(item.created_at)}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center text-sm text-gray-500 mb-1">
-                <Gift className="h-4 w-4 mr-2" />
-                Category
-              </div>
-              <p className="font-medium text-gray-900 capitalize">{item.category}</p>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
+          {/* Swap/Redeem Actions */}
           {item.status === 'available' && user && item.owner_id !== user.id && (
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 bg-primary-50 rounded-lg">
@@ -225,6 +243,7 @@ const ItemDetailPage = () => {
                     You have <span className="font-semibold text-primary-600">{user.points} points</span>
                   </span>
                 </div>
+                <WishlistButton itemId={item.id} />
               </div>
               
               <div className="grid grid-cols-2 gap-3">

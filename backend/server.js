@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 // Database connection
 const db = require('./models');
+const { sequelize } = require('./models');
 
 // Passport configuration
 require('./config/passport');
@@ -27,6 +28,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/swaps', require('./routes/swaps'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/wishlist', require('./routes/wishlist'));
+app.use('/api/meta', require('./routes/meta'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -45,11 +48,14 @@ app.use('*', (req, res) => {
 });
 
 // Sync database and start server
-db.sequelize.sync({ force: false }).then(() => {
+sequelize.sync({ force: true }).then(async () => {
   console.log('Database synced');
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error('Database sync error:', err);
+  
+  // Seed initial data
+  const seedInitialData = require('./seeders/initial-data');
+  await seedInitialData();
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 }); 

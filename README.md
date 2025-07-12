@@ -13,6 +13,16 @@ ReWear is a full-stack web application that enables users to exchange clothing i
   - Add, edit, and delete clothing items
   - Upload images for each item
   - Browse and search items
+- **AI-Powered Features**
+  - **Image Analysis**: AI analyzes clothing images to auto-fill item details
+  - **Smart Recommendations**: Personalized item recommendations based on user preferences
+  - **Style Insights**: AI-generated style analysis and suggestions
+  - **Description Generation**: AI creates engaging item descriptions
+  - **Similar Item Suggestions**: Find similar items for better swapping
+- **ImageKit Integration**
+  - Professional image hosting with optimization and CDN
+  - Automatic image resizing and optimization
+  - Fast global content delivery
 - **Swapping System**
   - Direct item swaps between users
   - Point-based redemption for items
@@ -21,6 +31,7 @@ ReWear is a full-stack web application that enables users to exchange clothing i
   - Manage users and assign admin roles
 - **User Dashboard**
   - View owned items, swap history, and points
+  - AI-powered insights and recommendations
 - **Responsive UI**
   - Modern, mobile-friendly design using React and Tailwind CSS
 
@@ -32,6 +43,8 @@ ReWear is a full-stack web application that enables users to exchange clothing i
 - **Backend:** Node.js, Express, Sequelize ORM
 - **Database:** PostgreSQL (Neon or any PostgreSQL-compatible service)
 - **Authentication:** JWT, Passport.js, Google OAuth 2.0
+- **AI Integration:** Google Gemini AI for image analysis and recommendations
+- **Image Hosting:** ImageKit.io for professional image management
 - **Image Uploads:** Multer
 
 ---
@@ -67,6 +80,14 @@ CORS_ORIGIN=http://localhost:3000
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# ImageKit.io Configuration
+IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
+IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_endpoint
+
+# Gemini AI Configuration
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 #### Frontend (`frontend/.env.local`):

@@ -10,7 +10,8 @@ import {
   Home, 
   Search, 
   Shield,
-  Gift
+  Heart,
+  RefreshCw
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -34,7 +35,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <Gift className="h-8 w-8 text-primary-600" />
+            <RefreshCw className="h-8 w-8 text-primary-600" />
             <span className="text-xl font-bold text-gray-900">ReWear</span>
           </Link>
 
@@ -66,6 +67,14 @@ const Navbar = () => {
                   <span>Add Item</span>
                 </Link>
                 
+                <Link 
+                  to="/wishlist" 
+                  className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
+                >
+                  <Heart className="h-4 w-4" />
+                  <span>Wishlist</span>
+                </Link>
+
                 <Link 
                   to="/dashboard" 
                   className="text-gray-700 hover:text-primary-600 transition-colors duration-200 flex items-center space-x-1"
@@ -167,15 +176,13 @@ const Navbar = () => {
                   >
                     Add Item
                   </Link>
-                  
                   <Link 
-                    to="/dashboard" 
+                    to="/wishlist" 
                     className="block px-3 py-2 text-gray-700 hover:text-primary-600 transition-colors duration-200"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Dashboard
+                    Wishlist
                   </Link>
-
                   {user.is_admin && (
                     <Link 
                       to="/admin" 

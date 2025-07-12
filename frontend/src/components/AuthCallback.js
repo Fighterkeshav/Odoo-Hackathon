@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -12,26 +13,25 @@ const AuthCallback = () => {
     const token = searchParams.get('token');
     
     if (token) {
-      // Store the token and user info
+      // Store the token
       localStorage.setItem('token', token);
+      // Set axios default header for future requests
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Decode the token to get user info (basic JWT decode)
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const user = {
-          id: payload.id,
-          email: payload.email,
-          is_admin: payload.is_admin
-        };
-        
-        login(user, token);
-        toast.success('Successfully signed in with Google!');
-        navigate('/dashboard');
-      } catch (error) {
-        console.error('Token decode error:', error);
-        toast.error('Authentication failed');
-        navigate('/login');
-      }
+      // Fetch full user profile from backend
+      (async () => {
+        try {
+          const response = await axios.get('/api/auth/dashboard');
+          const user = response.data.user;
+          await login(null, null, token, user);
+          toast.success('Successfully signed in with Google!');
+          navigate('/dashboard');
+        } catch (error) {
+          console.error('Failed to fetch user profile after Google login:', error);
+          toast.error('Authentication failed');
+          navigate('/login');
+        }
+      })();
     } else {
       toast.error('Authentication failed');
       navigate('/login');

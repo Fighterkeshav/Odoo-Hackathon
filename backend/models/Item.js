@@ -5,6 +5,14 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true
     },
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
     title: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -19,34 +27,47 @@ module.exports = (sequelize, DataTypes) => {
         len: [10, 1000]
       }
     },
-    category: {
-      type: DataTypes.ENUM('tops', 'bottoms', 'dresses', 'outerwear', 'shoes', 'accessories'),
-      allowNull: false
-    },
-    size: {
-      type: DataTypes.ENUM('XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'),
-      allowNull: false
-    },
-    condition: {
-      type: DataTypes.ENUM('new', 'like-new', 'good', 'fair', 'poor'),
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'available', 'swapped'),
-      allowNull: false,
-      defaultValue: 'pending'
-    },
-    image_url: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    owner_id: {
+    category_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'categories',
         key: 'id'
       }
+    },
+    type: {
+      type: DataTypes.ENUM('Men', 'Women', 'Unisex', 'Kids'),
+      allowNull: false
+    },
+    size_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'sizes',
+        key: 'id'
+      }
+    },
+    condition_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'conditions',
+        key: 'id'
+      }
+    },
+    status: {
+      type: DataTypes.ENUM('Available', 'Swapped', 'Redeemed', 'Under Review', 'Rejected'),
+      allowNull: false,
+      defaultValue: 'Under Review'
+    },
+    ai_analyzed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    ai_suggestions: {
+      type: DataTypes.JSON,
+      allowNull: true
     }
   }, {
     tableName: 'items',

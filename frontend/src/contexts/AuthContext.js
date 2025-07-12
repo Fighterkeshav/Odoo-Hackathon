@@ -44,13 +44,22 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, token = null, userData = null) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token, user } = response.data;
+      // If token and userData are provided (OAuth flow), use them directly
+      if (token && userData) {
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(userData);
+        return { success: true };
+      }
       
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Regular email/password login
+      const response = await axios.post('/api/auth/login', { email, password });
+      const { token: responseToken, user } = response.data;
+      
+      localStorage.setItem('token', responseToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${responseToken}`;
       setUser(user);
       
       toast.success('Login successful!');

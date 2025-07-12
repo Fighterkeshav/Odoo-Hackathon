@@ -24,7 +24,7 @@ router.get('/items', async (req, res) => {
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'name', 'email', 'location']
+          attributes: ['id', 'name', 'email', 'bio']
         }
       ],
       order: [['created_at', 'DESC']]
@@ -66,7 +66,7 @@ router.put('/items/:id/approve', [
     // If approved, give point to the owner
     if (status === 'available') {
       await item.owner.update({
-        points: item.owner.points + 1
+        points_balance: item.owner.points_balance + 1
       });
     }
 
@@ -75,7 +75,7 @@ router.put('/items/:id/approve', [
         {
           model: User,
           as: 'owner',
-          attributes: ['id', 'name', 'email', 'location', 'points']
+          attributes: ['id', 'name', 'email', 'bio', 'points_balance']
         }
       ]
     });
@@ -94,7 +94,7 @@ router.put('/items/:id/approve', [
 router.get('/users', async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'name', 'email', 'location', 'points', 'is_admin', 'created_at'],
+      attributes: ['id', 'name', 'email', 'bio', 'points_balance', 'is_admin', 'created_at'],
       include: [
         {
           model: Item,

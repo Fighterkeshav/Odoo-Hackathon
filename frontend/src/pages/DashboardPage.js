@@ -79,6 +79,15 @@ const DashboardPage = () => {
     });
   };
 
+  // Helper to get image URLs, tags, and normalized fields for items
+  const getItemMainImage = (item) => (item.images && item.images.length > 0 ? item.images[0].image_url : null);
+  const getItemTags = (item) => item.tags || [];
+  const getCategory = (item) => item.category ? item.category.name : '';
+  const getSize = (item) => item.size ? item.size.label : '';
+  const getCondition = (item) => item.condition ? item.condition.label : '';
+  const getType = (item) => item.type || '';
+  const getStatus = (item) => item.status || '';
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -89,10 +98,23 @@ const DashboardPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user.name}!</p>
+      {/* User Profile Section */}
+      <div className="flex items-center space-x-6 mb-8">
+        {user?.profile_image_url ? (
+          <img src={user.profile_image_url} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
+        ) : (
+          <div className="h-20 w-20 bg-primary-100 rounded-full flex items-center justify-center">
+            <User className="h-10 w-10 text-primary-600" />
+          </div>
+        )}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
+          <p className="text-gray-600 mb-2">{user?.bio}</p>
+          <div className="flex items-center text-sm text-gray-500">
+            <Coins className="h-4 w-4 mr-1" />
+            {user?.points_balance || 0} points
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -200,47 +222,34 @@ const DashboardPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {dashboardData?.items?.map((item) => (
-                  <div key={item.id} className="card">
+                {dashboardData.items.map((item) => (
+                  <div key={item.id} className="card-hover block">
                     <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200 mb-4">
-                      {item.image_url ? (
+                      {getItemMainImage(item) ? (
                         <img
-                          src={`http://localhost:5000${item.image_url}`}
+                          src={`http://localhost:5000${getItemMainImage(item)}`}
                           alt={item.title}
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-4xl">
-                          👕
-                        </div>
+                        <div className="flex items-center justify-center h-full text-4xl">👕</div>
                       )}
                     </div>
-                    
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-                    
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">{item.size}</span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionColor(item.condition)}`}>
-                        {item.condition}
-                      </span>
+                    <h3 className="text-lg font-semibold text-gray-900 truncate">{item.title}</h3>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+                      <span>{getCategory(item)}</span>
+                      <span>{getType(item)}</span>
+                      <span>{getSize(item)}</span>
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 border border-gray-300">{getStatus(item)}</span>
                     </div>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
-                        {item.status}
-                      </span>
-                      <span className="text-sm text-gray-500">{formatDate(item.created_at)}</span>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <Link
-                        to={`/items/${item.id}`}
-                        className="flex-1 btn-secondary text-center text-sm"
-                      >
-                        <Eye className="h-4 w-4 mr-1 inline" />
-                        View
-                      </Link>
-                    </div>
+                    {/* Tags */}
+                    {getItemTags(item).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {getItemTags(item).map(tag => (
+                          <span key={tag.id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">{tag.name}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -21,7 +21,7 @@ router.post('/', authenticateToken, [
 
     // Check if item exists and is available
     const item = await Item.findByPk(item_id, {
-      include: [{ model: User, as: 'owner' }]
+      include: [{ model: User, as: 'owner', attributes: ['id', 'name'] }]
     });
 
     if (!item) {
@@ -52,7 +52,7 @@ router.post('/', authenticateToken, [
     // For redeem requests, check if user has enough points
     if (type === 'redeem') {
       const user = await User.findByPk(from_user_id);
-      if (user.points < 1) {
+      if (user.points_balance < 1) {
         return res.status(400).json({ message: 'Insufficient points for redemption' });
       }
     }
@@ -195,12 +195,12 @@ router.put('/:id/respond', authenticateToken, [
       if (swap.type === 'redeem') {
         // Deduct point from redeemer
         await swap.fromUser.update({
-          points: swap.fromUser.points - 1
+          points_balance: swap.fromUser.points_balance - 1
         });
 
         // Add point to item owner
         await swap.toUser.update({
-          points: swap.toUser.points + 1
+          points_balance: swap.toUser.points_balance + 1
         });
       }
     }
@@ -215,12 +215,12 @@ router.put('/:id/respond', authenticateToken, [
         {
           model: User,
           as: 'fromUser',
-          attributes: ['id', 'name', 'points']
+          attributes: ['id', 'name', 'points_balance']
         },
         {
           model: User,
           as: 'toUser',
-          attributes: ['id', 'name', 'points']
+          attributes: ['id', 'name', 'points_balance']
         }
       ]
     });

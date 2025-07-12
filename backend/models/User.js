@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true
     },
-    username: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
@@ -20,26 +20,22 @@ module.exports = (sequelize, DataTypes) => {
         isEmail: true
       }
     },
-    password: {
+    password_hash: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
         len: [6, 100]
       }
     },
-    location: {
+    profile_image_url: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        len: [2, 100]
-      }
+      allowNull: true
     },
-    is_admin: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
-    points: {
+    points_balance: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
@@ -47,19 +43,28 @@ module.exports = (sequelize, DataTypes) => {
         min: 0
       }
     },
+    is_admin: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     google_id: {
       type: DataTypes.STRING,
       allowNull: true,
       unique: true
     },
-    profile_picture: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
     is_verified: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    ai_preferences: {
+      type: DataTypes.JSON,
+      allowNull: true
+    },
+    style_preferences: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, {
     tableName: 'users',

@@ -13,6 +13,7 @@ import ItemDetailPage from './pages/ItemDetailPage';
 import AddItemPage from './pages/AddItemPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminPanel from './pages/AdminPanel';
+import WishlistPage from './pages/WishlistPage';
 import AuthCallback from './components/AuthCallback';
 
 // Protected Route Component
@@ -75,6 +76,14 @@ const AppContent = () => {
               } 
             />
             <Route 
+              path="/wishlist" 
+              element={
+                <ProtectedRoute>
+                  <WishlistPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/admin" 
               element={
                 <ProtectedRoute requireAdmin={true}>
@@ -100,14 +109,14 @@ const AppContent = () => {
             success: {
               duration: 3000,
               iconTheme: {
-                primary: '#10b981',
+                primary: '#10B981',
                 secondary: '#fff',
               },
             },
             error: {
               duration: 5000,
               iconTheme: {
-                primary: '#ef4444',
+                primary: '#EF4444',
                 secondary: '#fff',
               },
             },

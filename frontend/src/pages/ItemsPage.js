@@ -8,42 +8,34 @@ const ItemsPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    category: '',
-    size: '',
-    condition: '',
+    category_id: '',
+    size_id: '',
+    condition_id: '',
+    tag_id: '',
     search: ''
   });
   const [viewMode, setViewMode] = useState('grid');
+  const [categories, setCategories] = useState([]);
+  const [sizes, setSizes] = useState([]);
+  const [conditions, setConditions] = useState([]);
+  const [tags, setTags] = useState([]);
 
-  const categories = [
-    { value: '', label: 'All Categories' },
-    { value: 'tops', label: 'Tops' },
-    { value: 'bottoms', label: 'Bottoms' },
-    { value: 'dresses', label: 'Dresses' },
-    { value: 'outerwear', label: 'Outerwear' },
-    { value: 'shoes', label: 'Shoes' },
-    { value: 'accessories', label: 'Accessories' }
-  ];
-
-  const sizes = [
-    { value: '', label: 'All Sizes' },
-    { value: 'XS', label: 'XS' },
-    { value: 'S', label: 'S' },
-    { value: 'M', label: 'M' },
-    { value: 'L', label: 'L' },
-    { value: 'XL', label: 'XL' },
-    { value: 'XXL', label: 'XXL' },
-    { value: 'One Size', label: 'One Size' }
-  ];
-
-  const conditions = [
-    { value: '', label: 'All Conditions' },
-    { value: 'new', label: 'New' },
-    { value: 'like-new', label: 'Like New' },
-    { value: 'good', label: 'Good' },
-    { value: 'fair', label: 'Fair' },
-    { value: 'poor', label: 'Poor' }
-  ];
+  useEffect(() => {
+    // Fetch filter options from backend
+    const fetchMeta = async () => {
+      const [catRes, sizeRes, condRes, tagRes] = await Promise.all([
+        axios.get('/api/meta/categories'),
+        axios.get('/api/meta/sizes'),
+        axios.get('/api/meta/conditions'),
+        axios.get('/api/meta/tags')
+      ]);
+      setCategories(catRes.data);
+      setSizes(sizeRes.data);
+      setConditions(condRes.data);
+      setTags(tagRes.data);
+    };
+    fetchMeta();
+  }, []);
 
   useEffect(() => {
     fetchItems();
@@ -53,13 +45,11 @@ const ItemsPage = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      
       Object.keys(filters).forEach(key => {
         if (filters[key]) {
           params.append(key, filters[key]);
         }
       });
-
       const response = await axios.get(`/api/items?${params}`);
       setItems(response.data);
     } catch (error) {
@@ -136,13 +126,13 @@ const ItemsPage = () => {
           {/* Category Filter */}
           <div>
             <select
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
+              value={filters.category_id}
+              onChange={(e) => handleFilterChange('category_id', e.target.value)}
               className="input-field"
             >
               {categories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>
@@ -151,13 +141,13 @@ const ItemsPage = () => {
           {/* Size Filter */}
           <div>
             <select
-              value={filters.size}
-              onChange={(e) => handleFilterChange('size', e.target.value)}
+              value={filters.size_id}
+              onChange={(e) => handleFilterChange('size_id', e.target.value)}
               className="input-field"
             >
               {sizes.map(size => (
-                <option key={size.value} value={size.value}>
-                  {size.label}
+                <option key={size.id} value={size.id}>
+                  {size.name}
                 </option>
               ))}
             </select>
@@ -166,13 +156,28 @@ const ItemsPage = () => {
           {/* Condition Filter */}
           <div>
             <select
-              value={filters.condition}
-              onChange={(e) => handleFilterChange('condition', e.target.value)}
+              value={filters.condition_id}
+              onChange={(e) => handleFilterChange('condition_id', e.target.value)}
               className="input-field"
             >
               {conditions.map(condition => (
-                <option key={condition.value} value={condition.value}>
-                  {condition.label}
+                <option key={condition.id} value={condition.id}>
+                  {condition.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tag Filter */}
+          <div>
+            <select
+              value={filters.tag_id}
+              onChange={(e) => handleFilterChange('tag_id', e.target.value)}
+              className="input-field"
+            >
+              {tags.map(tag => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.name}
                 </option>
               ))}
             </select>

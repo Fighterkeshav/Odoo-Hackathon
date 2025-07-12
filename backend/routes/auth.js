@@ -4,38 +4,134 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { body, validationResult } = require('express-validator');
 const { User } = require('../models');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Google OAuth routes
 router.get('/google',
+  (req, res, next) => {
+    console.log('Google OAuth initiated');
+    console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+    console.log('Callback URL:', process.env.GOOGLE_CALLBACK_URL);
+    next();
+  },
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false }),
-  (req, res) => {
-    const token = jwt.sign(
-      { 
-        id: req.user.id, 
-        email: req.user.email, 
-        is_admin: req.user.is_admin 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+  async (req, res) => {
+    try {
+      console.log('Google OAuth callback - User:', req.user);
+      
+      if (!req.user) {
+        console.error('No user found in request');
+        return res.redirect(`${process.env.CORS_ORIGIN}/login?error=authentication_failed`);
+      }
 
-    // Redirect to frontend with token
-    res.redirect(`${process.env.CORS_ORIGIN}/auth/callback?token=${token}`);
+      const token = jwt.sign(
+        { 
+          id: req.user.id, 
+          email: req.user.email, 
+          is_admin: req.user.is_admin 
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      console.log('Generated token for user:', req.user.email);
+      
+      // Redirect to frontend with token
+      res.redirect(`${process.env.CORS_ORIGIN}/auth/callback?token=${token}`);
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect(`${process.env.CORS_ORIGIN}/login?error=token_generation_failed`);
+    }
   }
 );
 
+// OAuth error handling
+router.get('/google/error', (req, res) => {
+  console.error('Google OAuth error:', req.query.error);
+  res.redirect(`${process.env.CORS_ORIGIN}/login?error=oauth_failed&message=${req.query.error}`);
+});
+
+// Dashboard route
+router.get('/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get user with all related data
+    const { Item, Swap } = require('../models');
+    
+    const user = await User.findByPk(userId, {
+      include: [
+        {
+          model: Item,
+          as: 'items'
+        },
+        {
+          model: Swap,
+          as: 'sentSwaps',
+          include: [
+            {
+              model: Item,
+              as: 'requestedItem'
+            },
+            {
+              model: User,
+              as: 'toUser'
+            }
+          ]
+        },
+        {
+          model: Swap,
+          as: 'receivedSwaps',
+          include: [
+            {
+              model: Item,
+              as: 'requestedItem'
+            },
+            {
+              model: User,
+              as: 'fromUser'
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        bio: user.bio,
+        is_admin: user.is_admin,
+        points_balance: user.points_balance,
+        profile_image_url: user.profile_image_url
+      },
+      items: user.items || [],
+      sentSwaps: user.sentSwaps || [],
+      receivedSwaps: user.receivedSwaps || []
+    });
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Regular registration
 router.post('/register', [
-  body('username').isLength({ min: 2, max: 50 }).withMessage('Username must be between 2 and 50 characters'),
+  body('name').isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
   body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  body('location').isLength({ min: 2, max: 100 }).withMessage('Location must be between 2 and 100 characters')
+  body('password_hash').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('bio').isLength({ min: 2, max: 100 }).withMessage('Bio must be between 2 and 100 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -43,7 +139,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, location } = req.body;
+    const { name, email, password_hash, bio } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -52,14 +148,14 @@ router.post('/register', [
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password_hash, 10);
 
     // Create user
     const user = await User.create({
-      username,
+      name,
       email,
-      password: hashedPassword,
-      location
+      password_hash: hashedPassword,
+      bio
     });
 
     // Generate JWT token
@@ -74,11 +170,11 @@ router.post('/register', [
       token,
       user: {
         id: user.id,
-        username: user.username,
+        name: user.name,
         email: user.email,
-        location: user.location,
+        bio: user.bio,
         is_admin: user.is_admin,
-        points: user.points
+        points_balance: user.points_balance
       }
     });
   } catch (error) {
@@ -90,7 +186,7 @@ router.post('/register', [
 // Regular login
 router.post('/login', [
   body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').notEmpty().withMessage('Password is required')
+  body('password_hash').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -98,7 +194,7 @@ router.post('/login', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { email, password_hash } = req.body;
 
     // Find user
     const user = await User.findOne({ where: { email } });
@@ -107,7 +203,7 @@ router.post('/login', [
     }
 
     // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password_hash, user.password_hash);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -124,12 +220,12 @@ router.post('/login', [
       token,
       user: {
         id: user.id,
-        username: user.username,
+        name: user.name,
         email: user.email,
-        location: user.location,
+        bio: user.bio,
         is_admin: user.is_admin,
-        points: user.points,
-        profile_picture: user.profile_picture
+        points_balance: user.points_balance,
+        profile_image_url: user.profile_image_url
       }
     });
   } catch (error) {

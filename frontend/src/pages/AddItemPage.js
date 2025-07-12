@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -9,43 +9,48 @@ const AddItemPage = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
-    size: '',
-    condition: ''
+    category_id: '',
+    size_id: '',
+    condition_id: '',
+    type: '',
+    tags: []
   });
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const categories = [
-    { value: '', label: 'Select Category' },
-    { value: 'tops', label: 'Tops' },
-    { value: 'bottoms', label: 'Bottoms' },
-    { value: 'dresses', label: 'Dresses' },
-    { value: 'outerwear', label: 'Outerwear' },
-    { value: 'shoes', label: 'Shoes' },
-    { value: 'accessories', label: 'Accessories' }
+  const [categories, setCategories] = useState([]);
+  const [sizes, setSizes] = useState([]);
+  const [conditions, setConditions] = useState([]);
+  const [tags, setTags] = useState([]);
+  const types = [
+    { value: '', label: 'Select Type' },
+    { value: 'Men', label: 'Men' },
+    { value: 'Women', label: 'Women' },
+    { value: 'Unisex', label: 'Unisex' },
+    { value: 'Kids', label: 'Kids' }
   ];
 
-  const sizes = [
-    { value: '', label: 'Select Size' },
-    { value: 'XS', label: 'XS' },
-    { value: 'S', label: 'S' },
-    { value: 'M', label: 'M' },
-    { value: 'L', label: 'L' },
-    { value: 'XL', label: 'XL' },
-    { value: 'XXL', label: 'XXL' },
-    { value: 'One Size', label: 'One Size' }
-  ];
-
-  const conditions = [
-    { value: '', label: 'Select Condition' },
-    { value: 'new', label: 'New' },
-    { value: 'like-new', label: 'Like New' },
-    { value: 'good', label: 'Good' },
-    { value: 'fair', label: 'Fair' },
-    { value: 'poor', label: 'Poor' }
-  ];
+  useEffect(() => {
+    // Fetch categories, sizes, conditions, tags from backend
+    const fetchMeta = async () => {
+      try {
+        const [catRes, sizeRes, condRes, tagRes] = await Promise.all([
+          axios.get('/api/meta/categories'),
+          axios.get('/api/meta/sizes'),
+          axios.get('/api/meta/conditions'),
+          axios.get('/api/meta/tags')
+        ]);
+        setCategories(catRes.data);
+        setSizes(sizeRes.data);
+        setConditions(condRes.data);
+        setTags(tagRes.data);
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+        toast.error('Failed to load form options');
+      }
+    };
+    fetchMeta();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -54,53 +59,78 @@ const AddItemPage = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Please select a valid image file (JPEG, PNG, GIF)');
-        return;
-      }
-
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleTagChange = (e) => {
+    const value = Array.from(e.target.selectedOptions, option => option.value);
+    setFormData({ ...formData, tags: value });
   };
 
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const validFiles = files.filter(file => {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error(`${file.name} is not a valid image file`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is too large (max 5MB)`);
+        return false;
+      }
+      return true;
+    });
+
+    setImages(prev => [...prev, ...validFiles]);
+
+    // Create previews
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreviews(prev => [...prev, e.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const validateForm = () => {
     if (!formData.title.trim()) {
-      toast.error('Please enter a title');
+      toast.error('Title is required');
       return false;
     }
     if (!formData.description.trim()) {
-      toast.error('Please enter a description');
+      toast.error('Description is required');
       return false;
     }
-    if (!formData.category) {
-      toast.error('Please select a category');
+    if (formData.description.length < 10) {
+      toast.error('Description must be at least 10 characters');
       return false;
     }
-    if (!formData.size) {
-      toast.error('Please select a size');
+    if (formData.description.length > 100) {
+      toast.error('Description must be at most 100 characters');
       return false;
     }
-    if (!formData.condition) {
-      toast.error('Please select a condition');
+    if (!formData.category_id) {
+      toast.error('Category is required');
+      return false;
+    }
+    if (!formData.size_id) {
+      toast.error('Size is required');
+      return false;
+    }
+    if (!formData.condition_id) {
+      toast.error('Condition is required');
+      return false;
+    }
+    if (!formData.type) {
+      toast.error('Type is required');
+      return false;
+    }
+    if (images.length === 0) {
+      toast.error('At least one image is required');
       return false;
     }
     return true;
@@ -108,31 +138,30 @@ const AddItemPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     
-    if (!validateForm()) {
-      return;
-    }
-
     setLoading(true);
-
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('size', formData.size);
-      formDataToSend.append('condition', formData.condition);
+      formDataToSend.append('category_id', formData.category_id);
+      formDataToSend.append('size_id', formData.size_id);
+      formDataToSend.append('condition_id', formData.condition_id);
+      formDataToSend.append('type', formData.type);
       
-      if (image) {
-        formDataToSend.append('image', image);
+      // Handle tags correctly
+      if (formData.tags.length > 0) {
+        formData.tags.forEach(tagId => formDataToSend.append('tags', tagId));
       }
-
+      
+      // Handle images
+      images.forEach(img => formDataToSend.append('images', img));
+      
       const response = await axios.post('/api/items', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-
+      
       toast.success('Item added successfully! It will be reviewed by admin.');
       navigate('/dashboard');
     } catch (error) {
@@ -146,130 +175,101 @@ const AddItemPage = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add New Item</h1>
-        <p className="text-gray-600">Share your clothing with the community</p>
+        <h1 className="text-3xl font-bold text-gray-900">Add New Item</h1>
+        <p className="text-gray-600 mt-2">Share your clothing items with the community</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="card">
-          {/* Image Upload */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Item Photo
-            </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-primary-400 transition-colors">
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-h-64 rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="image-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="image-upload"
-                        name="image"
-                        type="file"
-                        className="sr-only"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
-                </div>
-              )}
+        {/* Basic Information */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title *
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="e.g., Vintage Denim Jacket"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type *
+              </label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {types.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Title */}
-          <div className="mb-4">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="e.g., Vintage Denim Jacket"
-              maxLength={100}
-            />
-          </div>
-
-          {/* Description */}
-          <div className="mb-4">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Description *
             </label>
             <textarea
-              id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows={4}
-              className="input-field"
-              placeholder="Describe the item, its condition, any special features..."
-              maxLength={1000}
+              rows="4"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Describe your item in detail..."
             />
-            <p className="mt-1 text-sm text-gray-500">
-              {formData.description.length}/1000 characters
-            </p>
           </div>
+        </div>
 
-          {/* Category, Size, Condition */}
+        {/* Item Details */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Item Details</h2>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category *
               </label>
               <select
-                id="category"
-                name="category"
-                value={formData.category}
+                name="category_id"
+                value={formData.category_id}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
+                <option value="">Select Category</option>
                 {categories.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Size *
               </label>
               <select
-                id="size"
-                name="size"
-                value={formData.size}
+                name="size_id"
+                value={formData.size_id}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
+                <option value="">Select Size</option>
                 {sizes.map(size => (
-                  <option key={size.value} value={size.value}>
+                  <option key={size.id} value={size.id}>
                     {size.label}
                   </option>
                 ))}
@@ -277,46 +277,104 @@ const AddItemPage = () => {
             </div>
 
             <div>
-              <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Condition *
               </label>
               <select
-                id="condition"
-                name="condition"
-                value={formData.condition}
+                name="condition_id"
+                value={formData.condition_id}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
+                <option value="">Select Condition</option>
                 {conditions.map(condition => (
-                  <option key={condition.value} value={condition.value}>
+                  <option key={condition.id} value={condition.id}>
                     {condition.label}
                   </option>
                 ))}
               </select>
             </div>
           </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tags
+            </label>
+            <select
+              multiple
+              name="tags"
+              value={formData.tags}
+              onChange={handleTagChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {tags.map(tag => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-sm text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple tags</p>
+          </div>
+        </div>
+
+        {/* Image Upload */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Images</h2>
+          
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              id="image-upload"
+              name="images"
+            />
+            <label htmlFor="image-upload" className="cursor-pointer">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-2 text-sm text-gray-600">
+                Click to upload images or drag and drop
+              </p>
+              <p className="text-xs text-gray-500">
+                PNG, JPG, GIF up to 5MB each
+              </p>
+            </label>
+          </div>
+
+          {imagePreviews.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Preview</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary flex items-center"
+            className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            ) : (
-              <Plus className="h-4 w-4 mr-2" />
-            )}
-            {loading ? 'Adding...' : 'Add Item'}
+            {loading ? 'Adding Item...' : 'Add Item'}
           </button>
         </div>
       </form>

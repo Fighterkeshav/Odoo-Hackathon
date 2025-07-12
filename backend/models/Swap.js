@@ -5,14 +5,6 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true
     },
-    item_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'items',
-        key: 'id'
-      }
-    },
     from_user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -29,17 +21,36 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    type: {
-      type: DataTypes.ENUM('swap', 'redeem'),
-      allowNull: false
+    requested_item_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'items',
+        key: 'id'
+      }
+    },
+    offered_item_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'items',
+        key: 'id'
+      }
+    },
+    points_offered: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: 0
+      }
     },
     status: {
-      type: DataTypes.ENUM('pending', 'accepted', 'rejected'),
+      type: DataTypes.ENUM('Pending', 'Accepted', 'Rejected', 'Completed'),
       allowNull: false,
-      defaultValue: 'pending'
+      defaultValue: 'Pending'
     }
   }, {
-    tableName: 'swaps',
+    tableName: 'swap_requests',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
