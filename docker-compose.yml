@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rewear-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      - DATABASE_URL=sqlite://./database.sqlite
+      - CORS_ORIGIN=http://localhost:3000
+      - MAX_FILE_SIZE=5242880
+      - UPLOAD_PATH=/uploads
+    volumes:
+      - ./uploads:/uploads
+      - backend-data:/app
+    restart: unless-stopped
+    networks:
+      - rewear-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: rewear-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - rewear-network
+
+volumes:
+  backend-data:
+
+networks:
+  rewear-network:
+    driver: bridge
