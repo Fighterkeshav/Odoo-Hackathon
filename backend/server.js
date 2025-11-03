@@ -29,6 +29,7 @@ app.use(passport.initialize());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
+console.log('Loading routes...');
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/items', require('./routes/items'));
 app.use('/api/swaps', require('./routes/swaps'));
@@ -36,6 +37,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/meta', require('./routes/meta'));
 app.use('/api/location', require('./routes/location'));
+console.log('Routes loaded successfully');
 
 // Root endpoint
 app.get('/', (req, res) => {

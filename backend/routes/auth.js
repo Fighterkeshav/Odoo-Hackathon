@@ -14,12 +14,29 @@ router.get('/google',
     console.log('Google OAuth initiated');
     console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
     console.log('Callback URL:', process.env.GOOGLE_CALLBACK_URL);
+    
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('Google OAuth not configured');
+      return res.status(503).json({ 
+        error: 'Google OAuth is not configured on the server',
+        message: 'Please contact the administrator'
+      });
+    }
     next();
   },
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
 router.get('/google/callback',
+  (req, res, next) => {
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('Google OAuth callback - OAuth not configured');
+      return res.redirect(`${process.env.CORS_ORIGIN || 'http://localhost:3000'}/login?error=oauth_not_configured`);
+    }
+    next();
+  },
   passport.authenticate('google', { session: false, failureRedirect: '/login' }),
   async (req, res) => {
     try {
