@@ -16,14 +16,17 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL,
-      scope: ['profile', 'email']
-    },
+// Only configure Google OAuth if credentials are provided
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  console.log('Configuring Google OAuth...');
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback',
+        scope: ['profile', 'email']
+      },
     async (accessToken, refreshToken, profile, done) => {
       try {
         console.log('Google profile:', profile);
@@ -94,7 +97,10 @@ passport.use(
         return done(error, null);
       }
     }
-  )
-);
+    )
+  );
+} else {
+  console.log('Google OAuth not configured - GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET not set');
+}
 
 module.exports = passport; 
