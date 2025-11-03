@@ -46,6 +46,7 @@ const ItemsPage = () => {
     if (filters.category_id || filters.size_id || filters.condition_id || filters.tag_id) {
       fetchItems();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.category_id, filters.size_id, filters.condition_id, filters.tag_id]);
 
   // Cleanup timeout on unmount

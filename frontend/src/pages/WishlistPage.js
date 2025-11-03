@@ -7,15 +7,13 @@ import {
   Heart, 
   Trash2, 
   Edit3, 
-  MapPin, 
   User, 
   Calendar,
-  Star,
   Loader2
 } from 'lucide-react';
 
 const WishlistPage = () => {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);

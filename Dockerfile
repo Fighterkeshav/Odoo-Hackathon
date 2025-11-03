@@ -23,7 +23,7 @@ RUN cd frontend && npm run build
 
 # Setup nginx
 COPY nginx-unified.conf /etc/nginx/http.d/default.conf
-RUN rm -rf /usr/share/nginx/html/*
+RUN mkdir -p /usr/share/nginx/html
 RUN cp -r frontend/build/* /usr/share/nginx/html/
 
 # Create necessary directories

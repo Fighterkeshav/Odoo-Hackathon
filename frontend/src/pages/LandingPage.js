@@ -6,9 +6,7 @@ import {
   Users, 
   Heart, 
   TrendingUp, 
-  ArrowRight, 
-  CheckCircle,
-  Star
+  ArrowRight
 } from 'lucide-react';
 
 const LandingPage = () => {
