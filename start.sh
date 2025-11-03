@@ -27,5 +27,13 @@ su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE rewear TO rewear;\" 2
 su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
 
 echo "Starting services with supervisor..."
+
+# Wait a bit for PostgreSQL to be fully ready
+sleep 3
+
+# Test database connection
+echo "Testing database connection..."
+PGPASSWORD=rewear123 psql -h localhost -U rewear -d rewear -c "SELECT 1;" 2>&1 || echo "Database not ready yet, will retry..."
+
 # Start supervisor
 exec /usr/bin/supervisord -c /etc/supervisord.conf

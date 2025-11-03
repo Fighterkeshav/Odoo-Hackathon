@@ -39,9 +39,10 @@ RUN echo "listen_addresses='*'" >> /var/lib/postgresql/data/postgresql.conf
 # Copy supervisor config
 COPY supervisord.conf /etc/supervisord.conf
 
-# Copy startup script
+# Copy startup scripts
 COPY start.sh /start.sh
-RUN chmod +x /start.sh
+COPY backend-start.sh /backend-start.sh
+RUN chmod +x /start.sh /backend-start.sh
 
 # Set default environment variables
 ENV JWT_SECRET=change-this-secret-in-production \
