@@ -31,12 +31,23 @@ echo "Injecting frontend configuration..."
 
 echo "Starting services with supervisor..."
 
-# Wait a bit for PostgreSQL to be fully ready
-sleep 3
+# Start supervisor in background
+/usr/bin/supervisord -c /etc/supervisord.conf
 
-# Test database connection
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if PGPASSWORD=rewear123 psql -h localhost -U rewear -d rewear -c "SELECT 1;" > /dev/null 2>&1; then
+    echo "✓ PostgreSQL is ready!"
+    break
+  fi
+  echo "Waiting for PostgreSQL... attempt $i/15"
+  sleep 2
+done
+
+# Test final connection
 echo "Testing database connection..."
-PGPASSWORD=rewear123 psql -h localhost -U rewear -d rewear -c "SELECT 1;" 2>&1 || echo "Database not ready yet, will retry..."
+PGPASSWORD=rewear123 psql -h localhost -U rewear -d rewear -c "SELECT 1;" 2>&1 || echo "⚠ Database connection failed"
 
-# Start supervisor
-exec /usr/bin/supervisord -c /etc/supervisord.conf
+# Keep container running
+tail -f /dev/null
