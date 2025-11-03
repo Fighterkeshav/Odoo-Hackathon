@@ -30,7 +30,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/rewear:latest
-            ${{ secrets.DOCKER_USERNAME }}/rewear:${{ github.sha }}
+            fighterkeshav7/rewear:latest
+            fighterkeshav7/rewear:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
