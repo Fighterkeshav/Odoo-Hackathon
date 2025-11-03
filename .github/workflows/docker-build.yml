@@ -2,45 +2,45 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Docker Hub
-      run: |
-        echo "${{ secrets.DOCKER_PAT }}" | docker login -u fighterkeshav7 --password-stdin
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PAT }}" | docker login -u fighterkeshav7 --password-stdin
 
-    - name: Build and push backend image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.backend
-        push: true
-        tags: |
-          fighterkeshav7/rewear-backend:latest
-          fighterkeshav7/rewear-backend:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          push: true
+          tags: |
+            fighterkeshav7/rewear-backend:latest
+            fighterkeshav7/rewear-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-    - name: Build and push frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.frontend
-        push: true
-        tags: |
-          fighterkeshav7/rewear-frontend:latest
-          fighterkeshav7/rewear-frontend:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: |
+            fighterkeshav7/rewear-frontend:latest
+            fighterkeshav7/rewear-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
