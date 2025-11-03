@@ -18,6 +18,13 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script>
+      // Runtime configuration - will be replaced at container startup
+      window.APP_CONFIG = {
+        GOOGLE_CLIENT_ID: 'REPLACE_WITH_GOOGLE_CLIENT_ID',
+        API_URL: '/api'
+      };
+    </script>
     <script src="%PUBLIC_URL%/config.js"></script>
     <div id="root"></div>
   </body>
