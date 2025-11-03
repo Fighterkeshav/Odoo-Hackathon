@@ -49,13 +49,14 @@ docker-compose down -v
 
 - **Backend**: Node.js/Express API running on port 5000
 - **Frontend**: React app served by Nginx on port 80 (mapped to 3000)
-- **Database**: SQLite (stored in backend container volume)
+- **Database**: PostgreSQL 15 (persistent volume)
 - **Uploads**: Shared volume for file uploads
 
 ## Environment Variables
 
 Edit `.env` file to configure:
 - `JWT_SECRET`: Secret key for JWT tokens (required)
+- `POSTGRES_PASSWORD`: PostgreSQL database password (default: rewear123)
 
 ## Troubleshooting
 
