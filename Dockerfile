@@ -43,6 +43,12 @@ COPY supervisord.conf /etc/supervisord.conf
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
+# Set default environment variables
+ENV JWT_SECRET=change-this-secret-in-production \
+    NODE_ENV=production \
+    PORT=5000 \
+    UPLOAD_PATH=/uploads
+
 # Expose port
 EXPOSE 80
 

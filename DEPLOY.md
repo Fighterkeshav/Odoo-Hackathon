@@ -17,6 +17,15 @@ Everything runs on port 80, no configuration needed!
 docker run -d \
   -p 80:80 \
   -e JWT_SECRET=your-secret-key-here \
+  --name rewear \
+  fighterkeshav7/rewear:latest
+```
+
+**With persistent data (recommended):**
+```bash
+docker run -d \
+  -p 80:80 \
+  -e JWT_SECRET=your-secret-key-here \
   -v rewear-data:/var/lib/postgresql/data \
   -v rewear-uploads:/uploads \
   --name rewear \
