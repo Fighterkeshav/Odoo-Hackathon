@@ -2,6 +2,8 @@
 
 ReWear is a full-stack web application that enables users to exchange clothing items within a community. The platform supports direct swaps, point-based redemptions, and includes an admin panel for item approval and user management. Users can register and log in using email/password or Google OAuth.
 
+🐳 **Now with Docker support!** Deploy easily using Docker containers.
+
 ---
 
 ## Features
