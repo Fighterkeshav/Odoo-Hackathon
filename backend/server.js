@@ -15,7 +15,12 @@ const { sequelize } = require('./models');
 require('./config/passport');
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
@@ -31,6 +36,24 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/meta', require('./routes/meta'));
 app.use('/api/location', require('./routes/location'));
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'ReWear API is running',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      items: '/api/items',
+      swaps: '/api/swaps',
+      admin: '/api/admin',
+      wishlist: '/api/wishlist',
+      meta: '/api/meta',
+      location: '/api/location'
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -48,15 +71,28 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Sync database and start server
-sequelize.sync({ alter: true }).then(async () => {
-  console.log('Database synced');
-  
-  // Seed initial data
-  const seedInitialData = require('./seeders/initial-data');
-  await seedInitialData();
-});
-
+// Start server first, then sync database
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+  console.log(`JWT Secret: ${process.env.JWT_SECRET ? 'Set' : 'Not set'}`);
+  
+  // Sync database after server starts
+  sequelize.sync({ alter: true })
+    .then(async () => {
+      console.log('Database synced successfully');
+      
+      // Seed initial data
+      try {
+        const seedInitialData = require('./seeders/initial-data');
+        await seedInitialData();
+        console.log('Initial data seeded');
+      } catch (seedError) {
+        console.error('Error seeding data:', seedError.message);
+      }
+    })
+    .catch(err => {
+      console.error('Database sync error:', err.message);
+    });
 }); 
