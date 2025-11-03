@@ -60,6 +60,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ReWear API is running' });
 });
 
+// Debug endpoint to check configuration
+app.get('/api/debug/config', (req, res) => {
+  res.json({
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT,
+    jwtConfigured: !!process.env.JWT_SECRET,
+    googleOAuthConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    googleClientIdPrefix: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'Not set',
+    googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || 'Not set',
+    corsOrigin: process.env.CORS_ORIGIN || '*',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
