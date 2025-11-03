@@ -26,6 +26,9 @@ su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE rewear TO rewear;\" 2
 # Stop PostgreSQL (supervisor will start it)
 su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
 
+echo "Injecting frontend configuration..."
+/inject-config.sh
+
 echo "Starting services with supervisor..."
 
 # Wait a bit for PostgreSQL to be fully ready

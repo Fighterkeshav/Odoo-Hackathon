@@ -173,7 +173,7 @@ const AppContent = () => {
 // App Component with Providers
 const App = () => {
   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={window.APP_CONFIG?.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
       <AuthProvider>
         <AppContent />
       </AuthProvider>

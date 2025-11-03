@@ -42,7 +42,8 @@ COPY supervisord.conf /etc/supervisord.conf
 # Copy startup scripts
 COPY start.sh /start.sh
 COPY backend-start.sh /backend-start.sh
-RUN chmod +x /start.sh /backend-start.sh
+COPY inject-config.sh /inject-config.sh
+RUN chmod +x /start.sh /backend-start.sh /inject-config.sh
 
 # Set default environment variables
 ENV JWT_SECRET=change-this-secret-in-production \
