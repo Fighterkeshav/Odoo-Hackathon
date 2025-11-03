@@ -6,6 +6,9 @@ echo "PORT: $PORT"
 echo "DATABASE_URL: ${DATABASE_URL:0:30}..."
 echo "JWT_SECRET: ${JWT_SECRET:0:10}..."
 echo "UPLOAD_PATH: $UPLOAD_PATH"
+echo "GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:20}..."
+echo "GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:0:10}..."
+echo "GOOGLE_CALLBACK_URL: $GOOGLE_CALLBACK_URL"
 
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL..."
