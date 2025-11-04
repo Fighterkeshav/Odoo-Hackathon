@@ -41,17 +41,20 @@ ReWear is a full-stack web application that enables users to exchange clothing i
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v18 or higher recommended)
 - npm (v8 or higher)
 - PostgreSQL database (e.g., [Neon](https://neon.tech/), Supabase, or local PostgreSQL)
 
 ### 1. Clone the Repository
+
 ```bash
 git clone <your-repo-url>
 cd <project-directory>
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 npm run install:all
 ```
@@ -59,6 +62,7 @@ npm run install:all
 ### 3. Environment Variables
 
 #### Backend (`backend/.env`):
+
 ```
 JWT_SECRET=your-jwt-secret
 PORT=5000
@@ -72,22 +76,27 @@ GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 ```
 
 #### Frontend (`frontend/.env.local`):
+
 ```
 REACT_APP_API_URL=http://localhost:5000
 REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 ### 4. Start the Application
+
 From the project root, run:
+
 ```bash
-npm run dev 
+npm run dev
 ```
+
 - The backend will run on [http://localhost:5000](http://localhost:5000)
 - The frontend will run on [http://localhost:3000](http://localhost:3000)
 
 ---
 
 ## Google OAuth Setup
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create OAuth 2.0 credentials for a Web application
 3. Add the following to **Authorized JavaScript origins**:
@@ -99,6 +108,7 @@ npm run dev
 ---
 
 ## Usage
+
 - Register or log in with email/password or Google
 - Add clothing items with images and details
 - Browse, search, and request swaps with other users
@@ -108,6 +118,7 @@ npm run dev
 ---
 
 ## Folder Structure
+
 ```
 root/
   backend/
@@ -130,6 +141,7 @@ root/
 ---
 
 ## Contribution Guidelines
+
 - Fork the repository and create a new branch for your feature or bugfix
 - Write clear, descriptive commit messages
 - Ensure code is well-documented and follows project conventions
@@ -138,4 +150,5 @@ root/
 ---
 
 ## License
-This project is licensed under the MIT License. 
+
+This project is licensed under the MIT License.

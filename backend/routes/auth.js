@@ -20,12 +20,16 @@ router.get("/google", (req, res, next) => {
     return res.status(503).json({
       error: "Google OAuth is not configured on the server",
       message: "Please contact the administrator",
-      hint: "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables"
+      hint: "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables",
     });
   }
-  
+
   // If configured, use passport
-  passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  passport.authenticate("google", { scope: ["profile", "email"] })(
+    req,
+    res,
+    next
+  );
 });
 
 router.get(

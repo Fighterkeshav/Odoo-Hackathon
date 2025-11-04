@@ -6,22 +6,24 @@
 
 1. Go to [Render Dashboard](https://dashboard.render.com/)
 2. Click **New +** → **Web Service**
-3. Select **Deploy an existing image from a registry**
-4. Image URL: `fighterkeshav7/rewear:latest`
+3. Connect your GitHub repository
+4. Render will automatically detect the `render.yaml` file
 
 ### 2. Configure Service
 
-**Basic Settings:**
-- Name: `rewear` (or your choice)
-- Region: Choose closest to you
-- Instance Type: Free or Starter
+The `render.yaml` file will automatically configure:
+- Build Command: `cd backend && npm install`
+- Start Command: `cd backend && npm start`
+- Environment: Node.js
+- Port: 10000
 
 **Environment Variables (Required):**
 
-Add these in the Environment section:
+JWT_SECRET will be auto-generated, but you can also add these manually:
 
 ```
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+DATABASE_URL=your-postgres-database-url (if using external DB)
 ```
 
 **Optional - For Google OAuth (if you want Google login):**

@@ -18,6 +18,7 @@ Using your existing AWS RDS database: `database-1`
 4. Note the **Port** (usually 5432)
 
 Your connection string will be:
+
 ```
 postgresql://postgres:fighterkeshav7@database-1.xxxxx.region.rds.amazonaws.com:5432/postgres
 ```
@@ -75,12 +76,14 @@ CORS_ORIGIN=*
 ### Update Frontend Config
 
 Create `frontend/.env.production`:
+
 ```
 REACT_APP_API_URL=https://rewear-backend.onrender.com
 REACT_APP_GOOGLE_CLIENT_ID=[Your Google Client ID]
 ```
 
 Commit and push:
+
 ```bash
 git add frontend/.env.production
 git commit -m "Add production config with RDS"
@@ -94,12 +97,14 @@ git push origin main
 3. Click **Add New Project**
 4. Import your repository
 5. Configure:
+
    - **Framework**: Create React App
    - **Root Directory**: `frontend`
    - **Build Command**: `npm run build`
    - **Output Directory**: `build`
 
 6. Add Environment Variables:
+
 ```
 REACT_APP_API_URL=https://rewear-backend.onrender.com
 REACT_APP_GOOGLE_CLIENT_ID=[Your Google Client ID]
@@ -118,12 +123,14 @@ REACT_APP_GOOGLE_CLIENT_ID=[Your Google Client ID]
 ## Step 6: Test Database Connection
 
 After backend deploys, check Render logs for:
+
 ```
 ✓ Database synced successfully
 ✅ Initial data seeded successfully!
 ```
 
 If you see errors, check:
+
 1. RDS endpoint is correct
 2. Security group allows inbound on port 5432
 3. Password is correct
@@ -159,18 +166,22 @@ Database (AWS RDS)
 ### Backend can't connect to RDS?
 
 1. **Check Security Group**:
+
    - Go to RDS → database-1 → VPC security groups
    - Verify inbound rule allows port 5432 from 0.0.0.0/0
 
 2. **Check RDS is publicly accessible**:
+
    - Go to RDS → database-1 → Connectivity & security
    - "Publicly accessible" should be "Yes"
    - If "No", modify the database to make it public
 
 3. **Verify connection string**:
+
    ```
    postgresql://USERNAME:PASSWORD@ENDPOINT:5432/DATABASE
    ```
+
    - USERNAME: usually `postgres`
    - PASSWORD: `fighterkeshav7`
    - ENDPOINT: from RDS console
@@ -193,6 +204,7 @@ Database (AWS RDS)
 ## Next Steps
 
 Once deployed:
+
 1. Visit your Vercel URL
 2. Create an account
 3. Test all features
